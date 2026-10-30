@@ -30,29 +30,22 @@
   #viewport{position:absolute;inset:0;overflow:hidden}
   #world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
   #world svg{position:absolute;left:0;top:0;display:block}
+  .map-bg{position:absolute;left:0;top:0;display:block;pointer-events:none;user-select:none}
 
   .sprite{position:absolute;transform:translate(-50%,-100%);pointer-events:none}
-  .sprite svg{display:block}
-  .leg{transform-box:fill-box}
-  .walking .leg-l{animation:legSwingL .46s ease-in-out infinite}
-  .walking .leg-r{animation:legSwingR .46s ease-in-out infinite}
-  @keyframes legSwingL{0%,100%{transform:rotate(24deg)}50%{transform:rotate(-24deg)}}
-  @keyframes legSwingR{0%,100%{transform:rotate(-24deg)}50%{transform:rotate(24deg)}}
-  .walking .torso-bob{animation:figBob .23s ease-in-out infinite alternate}
-  @keyframes figBob{from{transform:translateY(0)}to{transform:translateY(-4px)}}
 
-  #player-img{display:block;width:72px;height:auto;filter:drop-shadow(0 6px 4px rgba(0,0,0,.3))}
-  .walking #player-img{animation:playerWalk .4s ease-in-out infinite}
+  .figure-img{display:block;height:120px;width:auto;filter:drop-shadow(0 8px 6px rgba(0,0,0,.35))}
+  .walking .figure-img{animation:playerWalk .4s ease-in-out infinite}
   @keyframes playerWalk{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-5px) rotate(-3deg)}50%{transform:translateY(0) rotate(0deg)}75%{transform:translateY(-5px) rotate(3deg)}}
 
-  .decor{position:absolute;transform:translate(-50%,-50%);font-size:54px;filter:drop-shadow(0 6px 4px rgba(0,0,0,.25));user-select:none}
 
   .item-pad{position:absolute;transform:translate(-50%,-50%);width:70px;height:70px;cursor:pointer}
   .item-pad .ring{
-    position:absolute;inset:6px;border-radius:50%;box-shadow:0 6px 10px rgba(0,0,0,.3);
-    display:flex;align-items:center;justify-content:center;font-size:30px;
+    position:absolute;inset:6px;border-radius:50%;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));
+    display:flex;align-items:center;justify-content:center;
     animation:bob 2.1s ease-in-out infinite;
   }
+  .item-pad .ring img{width:100%;height:100%;display:block;border-radius:50%}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
   .item-pad.taken{display:none}
 
@@ -115,8 +108,9 @@
   #inventory-empty{font-size:11.5px;color:var(--ink-dim);padding:9px 4px}
   .inv-slot{
     position:relative;flex:none;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;
-    font-size:19px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25);border:none;
+    overflow:hidden;background:var(--surface-2);box-shadow:inset 0 0 0 2px rgba(255,255,255,.25);border:none;
   }
+  .inv-slot img{width:100%;height:100%;display:block;object-fit:cover}
   .inv-remove{
     position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
     background:#c0314f;color:#fff;border:1.5px solid var(--bg);font-size:12px;line-height:1;padding:0;
@@ -144,8 +138,9 @@
   }
   #modal-badge{
     width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    box-shadow:inset 0 0 0 4px rgba(255,255,255,.2);font-size:36px;
+    overflow:hidden;box-shadow:inset 0 0 0 4px rgba(255,255,255,.2);
   }
+  #modal-badge img{width:100%;height:100%;display:block;object-fit:cover}
   #modal-name{font-family:var(--font-display);font-size:19px;text-align:center}
   #modal-eixo{font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--ink-dim);text-align:center}
   #modal-question{margin:0;text-align:center;font-size:15px;line-height:1.5;color:#e6e1d4}
@@ -168,7 +163,7 @@
     padding:max(10px, env(safe-area-inset-top,0px)) 20px 8px max(14px, env(safe-area-inset-left,0px));
     display:flex;flex-direction:row;align-items:center;gap:10px;flex-wrap:wrap;
   }
-  #chief-stage svg{width:62px;height:74px;flex:none}
+  #chief-portrait{width:62px;height:auto;flex:none;border-radius:10px}
   #chief-door-btn{
     flex:none;order:-1;
     background:var(--surface);border:1px solid var(--line);border-radius:999px;color:var(--ink);
@@ -185,10 +180,39 @@
   }
   .grid-3x3{display:grid;grid-template-columns:repeat(3,68px);grid-template-rows:repeat(3,68px);gap:8px}
   .grid-slot{
-    border-radius:12px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;
-    font-size:26px;cursor:pointer;background:var(--surface);
+    position:relative;border-radius:12px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;
+    overflow:hidden;cursor:pointer;background:var(--surface);
   }
   .grid-slot.filled{border-style:solid}
+  .grid-slot img{width:78%;height:78%;display:block;border-radius:50%;object-fit:cover}
+  .grid-slot.drag-over{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--accent)}
+  .grid-remove{
+    position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
+    background:#c0314f;color:#fff;border:1.5px solid var(--bg);font-size:12px;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;
+  }
+  #item-info-overlay{
+    position:fixed;inset:0;z-index:35;display:none;align-items:flex-end;justify-content:center;
+    background:rgba(10,16,30,.55);padding:0 20px max(24px, env(safe-area-inset-bottom,0px));
+  }
+  #item-info-overlay.open{display:flex}
+  #item-info-card{
+    width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:26px;
+    padding:26px 22px;display:flex;flex-direction:column;align-items:center;gap:14px;
+    box-shadow:0 -10px 30px rgba(0,0,0,.35);
+  }
+  #item-info-badge{
+    width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;box-shadow:inset 0 0 0 4px rgba(255,255,255,.2);
+  }
+  #item-info-badge img{width:100%;height:100%;display:block;object-fit:cover}
+  #item-info-name{font-family:var(--font-display);font-size:19px;text-align:center}
+  #item-info-eixo{font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--ink-dim);text-align:center}
+  #item-info-desc{margin:0;text-align:center;font-size:15px;line-height:1.5;color:#e6e1d4}
+  #item-info-close{
+    width:100%;border:none;border-radius:999px;padding:13px 0;font-family:var(--font-display);
+    font-weight:800;font-size:14px;cursor:pointer;background:var(--accent);color:#16223e;
+  }
   #chief-available-label{font-size:10.5px;font-weight:800;color:var(--ink-dim);letter-spacing:.03em;align-self:flex-start}
   #chief-available-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:380px}
   #chief-progress{font-family:var(--font-display);font-size:13px}
@@ -246,34 +270,22 @@
   </div>
 </div>
 
+<div id="item-info-overlay">
+  <div id="item-info-card">
+    <div id="item-info-badge"></div>
+    <div>
+      <div id="item-info-name"></div>
+      <div id="item-info-eixo"></div>
+    </div>
+    <p id="item-info-desc"></p>
+    <button id="item-info-close" type="button">Entendi</button>
+  </div>
+</div>
+
 <div id="chief-overlay">
   <div id="chief-stage">
     <button id="chief-door-btn" type="button">← Voltar ao mapa</button>
-    <svg viewBox="0 0 150 180">
-      <ellipse cx="75" cy="168" rx="38" ry="7" fill="#000" opacity=".25"/>
-      <rect x="55" y="130" width="16" height="34" rx="8" fill="#d9c7a3"/>
-      <rect x="79" y="130" width="16" height="34" rx="8" fill="#d9c7a3"/>
-      <rect x="52" y="158" width="22" height="10" rx="5" fill="#171717"/>
-      <rect x="76" y="158" width="22" height="10" rx="5" fill="#171717"/>
-      <rect x="42" y="82" width="66" height="54" rx="22" fill="#1c5c34"/>
-      <rect x="60" y="100" width="30" height="20" rx="6" fill="#154a29"/>
-      <rect x="26" y="88" width="18" height="40" rx="9" fill="#1c5c34" transform="rotate(8 26 88)"/>
-      <rect x="106" y="88" width="18" height="40" rx="9" fill="#1c5c34" transform="rotate(-8 106 88)"/>
-      <circle cx="30" cy="128" r="9" fill="#f2c49c"/>
-      <circle cx="120" cy="128" r="9" fill="#f2c49c"/>
-      <path d="M50 80 L75 100 L100 80 L92 72 L75 86 L58 72 Z" fill="#f2c230"/>
-      <path d="M53 80 L75 97 L97 80 L91 74 L75 88 L59 74 Z" fill="#2f8f46"/>
-      <circle cx="75" cy="52" r="32" fill="#f2c49c"/>
-      <circle cx="62" cy="54" r="12" fill="#f4cfa6" opacity=".6"/>
-      <path d="M43 50 A32 29 0 0 1 107 50 L103 38 A29 24 0 0 0 47 38 Z" fill="#3b2a1e"/>
-      <circle cx="63" cy="54" r="4" fill="#2a1d14"/>
-      <circle cx="87" cy="54" r="4" fill="#2a1d14"/>
-      <circle cx="64.5" cy="52.5" r="1.3" fill="#fff"/>
-      <circle cx="88.5" cy="52.5" r="1.3" fill="#fff"/>
-      <path d="M64 66 Q75 74 86 66" stroke="#2a1d14" stroke-width="3" stroke-linecap="round" fill="none"/>
-      <circle cx="52" cy="62" r="6" fill="#e5486f" opacity=".35"/>
-      <circle cx="98" cy="62" r="6" fill="#e5486f" opacity=".35"/>
-    </svg>
+    <img src="assets/char-chief2.png" alt="" id="chief-portrait">
     <div id="chief-speech"></div>
   </div>
   <div id="chief-body"></div>
@@ -284,18 +296,197 @@
   'use strict';
 
   // ---------- World layout ----------
-  var WORLD_W = 2700, WORLD_H = 1850;
+  // Background is now a single illustrated image (assets/map-bg.webp) instead
+  // of a procedurally-drawn SVG. WORLD_W/H match that image's pixel size
+  // (scaled up for a comfortable camera range). Movement is restricted to a
+  // hand-traced graph of path nodes/edges over the image (see "Path graph"
+  // below) instead of "anywhere inside the island ellipse".
+  var MAP_IMG_W = 1515, MAP_IMG_H = 1038;
+  var IMG_SCALE = 1.8;
+  var WORLD_W = Math.round(MAP_IMG_W * IMG_SCALE), WORLD_H = Math.round(MAP_IMG_H * IMG_SCALE);
+  function S(x, y) { return { x: Math.round(x * IMG_SCALE), y: Math.round(y * IMG_SCALE) }; }
 
   var ZONES = [
-    { key:'meio', name:'Meio Ambiente', color:'#49b572', dark:'#2c7a4a', cx:680, cy:560 },
-    { key:'paz', name:'Paz e Desenvolvimento', color:'#3d7cc9', dark:'#2a5c99', cx:1980, cy:560 },
-    { key:'saude', name:'Saúde e Bem-estar', color:'#e08a62', dark:'#b4663f', cx:680, cy:1350 },
-    { key:'habilidades', name:'Habilidades para a Vida', color:'#e5486f', dark:'#b22d50', cx:1980, cy:1350 }
+    { key:'meio', name:'Meio Ambiente', color:'#49b572', cx:765, cy:601 },
+    { key:'paz', name:'Paz e Desenvolvimento', color:'#3d7cc9', cx:2066, cy:598 },
+    { key:'saude', name:'Saúde e Bem-estar', color:'#e08a62', cx:747, cy:1386 },
+    { key:'habilidades', name:'Habilidades para a Vida', color:'#e5486f', cx:2041, cy:1384 }
   ];
-  var HOUSE = { x: 1330, y: 190 };
-  var HOUSE_DOOR = { x: 1330, y: 305 };
-  var HOUSE_RADIUS = 65;
-  var SPAWN = { x: 1330, y: 90 };
+
+  var HOUSE = S(765, 181);
+  var HOUSE_DOOR = S(765, 156);
+  var HOUSE_RADIUS = 70;
+  // Spawn on the house island but outside HOUSE_RADIUS (at the Meio Ambiente
+  // bridge landing), so arriving doesn't instantly auto-open the chief's room.
+  var SPAWN = S(695, 171);
+
+  // ---------- Path graph ----------
+  // The character may only walk along these hand-traced nodes/edges (plus a
+  // small radius around each edge), matching the sandy/stone trails drawn
+  // into the map art. Each node also carries its zone, so item placement and
+  // the chief's-house auto-entry can stay zone-aware without a separate
+  // ellipse-based zoneOf() like the old procedural map used.
+  var NODE_DEF = {
+    // Bridge-landing nodes below are pixel-traced onto the actual plank
+    // bridges in assets/map-bg.webp (via wood-color centerline detection) —
+    // the previous coordinates were up to ~50px off the bridge, which is what
+    // let the character "walk" over open water near every crossing.
+    house_meio_end: [651,143], house_center: [765,181], house_paz_end: [857,146],
+
+    meio_house_end: [609,175], meio_watchtower: [668,260], meio_campfire: [748,280],
+    meio_pazbridge: [725,312], meio_dock: [630,395], meio_bottom2: [668,470],
+    meio_bottom1: [538,490], meio_southbridge: [431,509],
+    meio_footbridge_e: [538,330], meio_footbridge_w: [448,350],
+    meio_west1: [348,400], meio_west2: [248,430], meio_west3: [168,410],
+
+    paz_house_end: [894,170], paz_plaza_n: [946,263], paz_statue: [996,333],
+    paz_meiobridge: [804,313], paz_plaza_s: [996,433], paz_shops: [1096,353],
+    paz_ruins: [1196,313], paz_gazebo: [1146,453], paz_habilidadesbridge: [1127,513],
+
+    saude_meiobridge: [384,607], saude_hospital: [340,707], saude_kayaks: [240,777],
+    saude_center: [430,767], saude_soccer: [610,707], saude_pond: [760,777],
+    saude_habilidadesbridge: [717,781], saude_playground: [590,867], saude_south: [430,847],
+
+    habilidades_pazbridge: [1081,619], habilidades_cabin: [1063,689], habilidades_hub: [963,719],
+    habilidades_tower: [793,719], habilidades_saudebridge: [822,775], habilidades_farm: [963,799],
+    habilidades_satellite: [1163,769], habilidades_farm2: [913,869]
+  };
+  var NODE_ZONE = {
+    house_meio_end:'house', house_center:'house', house_paz_end:'house'
+  };
+  Object.keys(NODE_DEF).forEach(function (k) {
+    if (!NODE_ZONE[k]) NODE_ZONE[k] = k.split('_')[0];
+  });
+  var PATH_NODES = {};
+  Object.keys(NODE_DEF).forEach(function (k) {
+    var p = NODE_DEF[k], s = S(p[0], p[1]);
+    PATH_NODES[k] = { id: k, x: s.x, y: s.y, zone: NODE_ZONE[k] };
+  });
+
+  var EDGE_DEF = [
+    // house
+    ['house_meio_end','house_center'], ['house_center','house_paz_end'],
+    // meio ambiente (east loop + west spur)
+    ['meio_house_end','meio_watchtower'], ['meio_watchtower','meio_campfire'],
+    ['meio_campfire','meio_pazbridge'], ['meio_pazbridge','meio_dock'],
+    ['meio_dock','meio_bottom2'], ['meio_bottom2','meio_bottom1'],
+    ['meio_bottom1','meio_southbridge'],
+    ['meio_watchtower','meio_footbridge_e'], ['meio_footbridge_e','meio_footbridge_w'],
+    ['meio_footbridge_w','meio_west1'], ['meio_west1','meio_west2'], ['meio_west2','meio_west3'],
+    // paz e desenvolvimento (plaza hub)
+    ['paz_house_end','paz_plaza_n'], ['paz_plaza_n','paz_statue'],
+    ['paz_statue','paz_meiobridge'], ['paz_statue','paz_plaza_s'],
+    ['paz_statue','paz_shops'], ['paz_shops','paz_ruins'],
+    ['paz_plaza_s','paz_gazebo'], ['paz_gazebo','paz_habilidadesbridge'],
+    // saude e bem-estar (open courtyard mesh)
+    ['saude_meiobridge','saude_hospital'], ['saude_hospital','saude_kayaks'],
+    ['saude_hospital','saude_center'], ['saude_center','saude_soccer'],
+    ['saude_center','saude_south'], ['saude_south','saude_playground'],
+    ['saude_center','saude_pond'], ['saude_pond','saude_habilidadesbridge'],
+    ['saude_pond','saude_playground'],
+    // habilidades para a vida
+    ['habilidades_pazbridge','habilidades_cabin'], ['habilidades_cabin','habilidades_hub'],
+    ['habilidades_hub','habilidades_tower'], ['habilidades_tower','habilidades_saudebridge'],
+    ['habilidades_hub','habilidades_farm'], ['habilidades_farm','habilidades_farm2'],
+    ['habilidades_farm','habilidades_satellite'],
+    // bridges between islands
+    ['house_meio_end','meio_house_end'], ['house_paz_end','paz_house_end'],
+    ['meio_pazbridge','paz_meiobridge'], ['meio_southbridge','saude_meiobridge'],
+    ['paz_habilidadesbridge','habilidades_pazbridge'], ['saude_habilidadesbridge','habilidades_saudebridge']
+  ];
+  var PATH_RADIUS = { meio: 60, paz: 70, saude: 110, habilidades: 100, house: 70 };
+  // Inter-island bridges are drawn as narrow wooden planks (~25-35px wide in
+  // the art) — using the wide island radius there let the character "walk"
+  // well into the water on both sides of every bridge. Edges that cross
+  // between two different zones get this tight radius instead.
+  var BRIDGE_RADIUS = 18;
+  var PATH_EDGES = EDGE_DEF.map(function (pair) {
+    var a = PATH_NODES[pair[0]], b = PATH_NODES[pair[1]];
+    var r = a.zone !== b.zone ? BRIDGE_RADIUS : Math.max(PATH_RADIUS[a.zone] || 60, PATH_RADIUS[b.zone] || 60);
+    return { a: a, b: b, r: r };
+  });
+
+  function pointToSegDist(px, py, x1, y1, x2, y2) {
+    var dx = x2 - x1, dy = y2 - y1;
+    var len2 = dx * dx + dy * dy;
+    var t = len2 ? Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2)) : 0;
+    return { d: Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy)), t: t, x: x1 + t * dx, y: y1 + t * dy };
+  }
+  function isWalkable(x, y) {
+    for (var i = 0; i < PATH_EDGES.length; i++) {
+      var e = PATH_EDGES[i];
+      if (pointToSegDist(x, y, e.a.x, e.a.y, e.b.x, e.b.y).d <= e.r) return true;
+    }
+    return false;
+  }
+  // Snap an arbitrary world point to the closest point actually on the path
+  // network — this is what makes "click anywhere" respect "walk only on
+  // paths": a tap on grass/water/rooftop walks to the nearest reachable spot.
+  function nearestPathPoint(x, y) {
+    var best = null, bestEdge = -1;
+    for (var i = 0; i < PATH_EDGES.length; i++) {
+      var e = PATH_EDGES[i];
+      var p = pointToSegDist(x, y, e.a.x, e.a.y, e.b.x, e.b.y);
+      if (!best || p.d < best.d) { best = p; bestEdge = i; }
+    }
+    return { x: best.x, y: best.y, edge: bestEdge };
+  }
+  // Dijkstra over the node graph, with the start/target snapped points spliced
+  // in as extra nodes on their nearest edge, so routes can start/end mid-edge
+  // instead of only at the hand-placed waypoints.
+  function findPathRoute(fromX, fromY, toX, toY) {
+    var from = nearestPathPoint(fromX, fromY);
+    var to = nearestPathPoint(toX, toY);
+    var nodeIds = Object.keys(PATH_NODES);
+    var graph = {};
+    nodeIds.forEach(function (id) { graph[id] = []; });
+    PATH_EDGES.forEach(function (e) {
+      graph[e.a.id].push({ id: e.b.id, x: e.b.x, y: e.b.y, w: Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y) });
+      graph[e.b.id].push({ id: e.a.id, x: e.a.x, y: e.a.y, w: Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y) });
+    });
+    var START = '__start__', END = '__end__';
+    graph[START] = []; graph[END] = [];
+    [from, to].forEach(function (snapped, i) {
+      var id = i === 0 ? START : END;
+      var e = PATH_EDGES[snapped.edge];
+      [e.a, e.b].forEach(function (n) {
+        var w = Math.hypot(n.x - snapped.x, n.y - snapped.y);
+        graph[id].push({ id: n.id, x: n.x, y: n.y, w: w });
+        graph[n.id].push({ id: id, x: snapped.x, y: snapped.y, w: w });
+      });
+    });
+    // Only wire a direct START<->END edge when both ends snap onto the very
+    // same path segment — then walking straight between them IS the path, no
+    // detour via that segment's endpoints needed. Any other case must go
+    // through the real node graph (bridges included), or a straight line
+    // would always "win" over the actual walkable route.
+    if (from.edge === to.edge) {
+      var directW = Math.hypot(to.x - from.x, to.y - from.y);
+      graph[START].push({ id: END, x: to.x, y: to.y, w: directW });
+      graph[END].push({ id: START, x: from.x, y: from.y, w: directW });
+    }
+
+    var dist = {}, prev = {}, visited = {};
+    Object.keys(graph).forEach(function (id) { dist[id] = Infinity; });
+    dist[START] = 0;
+    var pos = {}; pos[START] = { x: from.x, y: from.y }; pos[END] = { x: to.x, y: to.y };
+    nodeIds.forEach(function (id) { pos[id] = { x: PATH_NODES[id].x, y: PATH_NODES[id].y }; });
+    while (true) {
+      var cur = null, curD = Infinity;
+      for (var id in dist) { if (!visited[id] && dist[id] < curD) { curD = dist[id]; cur = id; } }
+      if (cur === null || cur === END) break;
+      visited[cur] = true;
+      graph[cur].forEach(function (edge) {
+        var nd = dist[cur] + edge.w;
+        if (nd < dist[edge.id]) { dist[edge.id] = nd; prev[edge.id] = cur; }
+      });
+    }
+    var route = [], id = END;
+    if (dist[END] === Infinity) return [{ x: to.x, y: to.y }];
+    while (id) { route.unshift(pos[id]); id = prev[id]; }
+    route.shift(); // drop the start point itself — character is already there
+    return route;
+  }
 
   var ITEMS = [
     { id:'comunicacoes', name:'Microfone', zone:'habilidades', emoji:'🎙️', question:'Você curtiria criar um podcast, canal ou jornal sobre um tema que te interessa?' },
@@ -332,37 +523,31 @@
     { id:'saude-sexual', name:'Fita de Conscientização', zone:'saude', emoji:'🎗️', question:'Você se sente à vontade pra buscar informação séria sobre corpo e autocuidado?' }
   ];
 
+  // Place each item near one of its zone's path nodes (not scattered freely
+  // across the island) so it always sits within walking + pickup reach. When
+  // a zone has more items than nodes, items share a node, spread around it at
+  // a small golden-angle-stepped offset so they don't stack exactly in place.
   (function layoutItems() {
     var byZone = {};
     ITEMS.forEach(function (it) { (byZone[it.zone] = byZone[it.zone] || []).push(it); });
-    ZONES.forEach(function (zone) {
-      var list = byZone[zone.key] || [];
-      var cols = Math.ceil(Math.sqrt(list.length));
-      var rows = Math.ceil(list.length / cols);
-      var spanX = 640, spanY = 380;
+    var zoneByKey = {}; ZONES.forEach(function (z) { zoneByKey[z.key] = z; });
+    Object.keys(byZone).forEach(function (zoneKey) {
+      var nodes = Object.keys(PATH_NODES).map(function (k) { return PATH_NODES[k]; })
+        .filter(function (n) { return n.zone === zoneKey; });
+      var list = byZone[zoneKey];
+      var zone = zoneByKey[zoneKey];
       list.forEach(function (it, i) {
-        var col = i % cols, row = Math.floor(i / cols);
-        var fx = cols > 1 ? col / (cols - 1) : 0.5;
-        var fy = rows > 1 ? row / (rows - 1) : 0.5;
-        it.x = Math.round(zone.cx - spanX / 2 + fx * spanX);
-        it.y = Math.round(zone.cy - spanY / 2 + fy * spanY);
+        var node = nodes[i % nodes.length];
+        var ring = Math.floor(i / nodes.length);
+        var angle = ring * 2.4 + i * 0.7;
+        var radius = 22 + ring * 26;
+        it.x = Math.round(node.x + Math.cos(angle) * radius);
+        it.y = Math.round(node.y + Math.sin(angle) * radius * 0.6);
         it.eixo = zone.name;
         it.eixoColor = zone.color;
       });
     });
   })();
-
-  var DECOR = [
-    { zone:'meio', x:420, y:380, e:'🌲' }, { zone:'meio', x:950, y:360, e:'🌳' },
-    { zone:'meio', x:380, y:760, e:'🦌' }, { zone:'meio', x:960, y:770, e:'🪨' },
-    { zone:'meio', x:680, y:270, e:'🏞️' },
-    { zone:'paz', x:1700, y:370, e:'🏛️' }, { zone:'paz', x:2250, y:380, e:'🧱' },
-    { zone:'paz', x:1720, y:760, e:'💃' }, { zone:'paz', x:2240, y:750, e:'🌷' },
-    { zone:'saude', x:420, y:1170, e:'🏥' }, { zone:'saude', x:960, y:1160, e:'🚑' },
-    { zone:'saude', x:400, y:1540, e:'🎨' }, { zone:'saude', x:960, y:1550, e:'👨‍👩‍👧' },
-    { zone:'habilidades', x:1700, y:1170, e:'🪢' }, { zone:'habilidades', x:2250, y:1160, e:'🔧' },
-    { zone:'habilidades', x:1700, y:1550, e:'🌿' }, { zone:'habilidades', x:2250, y:1540, e:'🌳' }
-  ];
 
   // ---------- DOM refs ----------
   var gameWrap = document.getElementById('game-wrap');
@@ -380,219 +565,56 @@
   var modalQuestion = document.getElementById('modal-question');
   var btnLeva = document.getElementById('btn-leva');
   var btnDeixa = document.getElementById('btn-deixa');
+  var itemInfoOverlay = document.getElementById('item-info-overlay');
+  var itemInfoBadge = document.getElementById('item-info-badge');
+  var itemInfoName = document.getElementById('item-info-name');
+  var itemInfoEixo = document.getElementById('item-info-eixo');
+  var itemInfoDesc = document.getElementById('item-info-desc');
+  var itemInfoClose = document.getElementById('item-info-close');
   var chiefOverlay = document.getElementById('chief-overlay');
   var chiefDoorBtn = document.getElementById('chief-door-btn');
   var chiefSpeech = document.getElementById('chief-speech');
   var chiefBody = document.getElementById('chief-body');
 
-  // ---------- Build the SVG island map ----------
-  var BLOB = 'M 150,250 C 70,150 230,30 430,55 C 640,10 880,0 1010,120 C 1150,185 1160,330 1090,425 C 1140,530 1050,635 895,660 C 740,705 540,695 385,665 C 210,640 40,555 20,415 C 0,320 55,295 150,250 Z';
+  // ---------- Background map art ----------
+  // Illustrated, pre-rendered background (assets/map-bg.webp) instead of a
+  // procedurally-drawn SVG. Walkability/routing now come entirely from the
+  // path graph defined above.
+  var mapBg = document.createElement('img');
+  mapBg.className = 'map-bg';
+  mapBg.alt = '';
+  mapBg.src = 'assets/map-bg.webp';
+  mapBg.style.width = WORLD_W + 'px';
+  mapBg.style.height = WORLD_H + 'px';
+  world.appendChild(mapBg);
+  // No on-map island name labels — the art stays label-free by design.
 
-  function svgEl(tag, attrs) {
-    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-    for (var k in attrs) el.setAttribute(k, attrs[k]);
-    return el;
-  }
-
-  var mapSvg = svgEl('svg', { width: WORLD_W, height: WORLD_H, viewBox: '0 0 ' + WORLD_W + ' ' + WORLD_H });
-  world.appendChild(mapSvg);
-
-  // sea background + soft wave texture
-  mapSvg.appendChild(svgEl('rect', { x: 0, y: 0, width: WORLD_W, height: WORLD_H, fill: '#5fb3dc' }));
-  for (var wy = 40; wy < WORLD_H; wy += 90) {
-    var wave = svgEl('path', {
-      d: 'M 0 ' + wy + ' Q 60 ' + (wy - 14) + ' 120 ' + wy + ' T 240 ' + wy + ' T 360 ' + wy + ' T 480 ' + wy + ' T 600 ' + wy + ' T 720 ' + wy + ' T 840 ' + wy + ' T 960 ' + wy + ' T 1080 ' + wy + ' T 1200 ' + wy + ' T 1320 ' + wy + ' T 1440 ' + wy + ' T 1560 ' + wy + ' T 1680 ' + wy + ' T 1800 ' + wy + ' T 1920 ' + wy + ' T 2040 ' + wy + ' T 2160 ' + wy + ' T 2280 ' + wy + ' T 2400 ' + wy + ' T 2520 ' + wy + ' T 2640 ' + wy,
-      fill: 'none', stroke: 'rgba(255,255,255,.16)', 'stroke-width': 5
-    });
-    mapSvg.appendChild(wave);
-  }
-
-  // clouds
-  function cloud(cx, cy, s) {
-    var g = svgEl('g', { opacity: '.85' });
-    [[0, 0, 34], [26, -10, 26], [-26, -8, 24], [46, 4, 20], [-44, 6, 18]].forEach(function (c) {
-      g.appendChild(svgEl('circle', { cx: cx + c[0] * s, cy: cy + c[1] * s, r: c[2] * s, fill: '#fff' }));
-    });
-    mapSvg.appendChild(g);
-  }
-  [[200, 110, 1], [2500, 90, 1.2], [60, 900, 0.9], [2600, 950, 1], [1330, 1780, 1.1], [120, 1700, 0.8]]
-    .forEach(function (c) { cloud(c[0], c[1], c[2]); });
-
-  // bridges (drawn before islands so island edges overlap the ends cleanly)
-  function bridge(x1, y1, x2, y2) {
-    var g = svgEl('g', {});
-    var len = Math.hypot(x2 - x1, y2 - y1);
-    var angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-    var planks = svgEl('rect', {
-      x: 0, y: -26, width: len, height: 52, rx: 20, fill: '#c9ad6a',
-      transform: 'translate(' + x1 + ',' + y1 + ') rotate(' + angle + ')'
-    });
-    var edge1 = svgEl('rect', {
-      x: 0, y: -26, width: len, height: 8, fill: '#a98a4c',
-      transform: 'translate(' + x1 + ',' + y1 + ') rotate(' + angle + ')'
-    });
-    var edge2 = svgEl('rect', {
-      x: 0, y: 18, width: len, height: 8, fill: '#a98a4c',
-      transform: 'translate(' + x1 + ',' + y1 + ') rotate(' + angle + ')'
-    });
-    g.appendChild(planks); g.appendChild(edge1); g.appendChild(edge2);
-    for (var p = 20; p < len; p += 34) {
-      g.appendChild(svgEl('rect', {
-        x: p, y: -22, width: 7, height: 44, fill: '#8a6f3a', opacity: '.55',
-        transform: 'translate(' + x1 + ',' + y1 + ') rotate(' + angle + ')'
-      }));
-    }
-    mapSvg.appendChild(g);
-  }
-  var BRIDGES = [
-    { x1: HOUSE.x - 40, y1: HOUSE.y + 95, x2: 820, y2: 430 },
-    { x1: HOUSE.x + 40, y1: HOUSE.y + 95, x2: 1870, y2: 430 },
-    { x1: 1150, y1: 560, x2: 1620, y2: 560 },
-    { x1: 680, y1: 870, x2: 680, y2: 1070 },
-    { x1: 1980, y1: 870, x2: 1980, y2: 1070 },
-    { x1: 1150, y1: 1350, x2: 1620, y2: 1350 }
-  ];
-  BRIDGES.forEach(function (b) { bridge(b.x1, b.y1, b.x2, b.y2); });
-
-  // ---------- Walkability: islands (ellipses) + bridges (capsules) ----------
-  function pointToSegDist(px, py, x1, y1, x2, y2) {
-    var dx = x2 - x1, dy = y2 - y1;
-    var len2 = dx * dx + dy * dy;
-    var t = len2 ? Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2)) : 0;
-    var cx = x1 + t * dx, cy = y1 + t * dy;
-    return Math.hypot(px - cx, py - cy);
-  }
-  function isWalkable(x, y) {
-    for (var zi = 0; zi < ZONES.length; zi++) {
-      var z = ZONES[zi];
-      var dx = (x - z.cx) / 540, dy = (y - z.cy) / 320;
-      if (dx * dx + dy * dy <= 1) return true;
-    }
-    var hdx = (x - HOUSE.x) / 225, hdy = (y - HOUSE.y) / 135;
-    if (hdx * hdx + hdy * hdy <= 1) return true;
-    for (var bi = 0; bi < BRIDGES.length; bi++) {
-      var b = BRIDGES[bi];
-      if (pointToSegDist(x, y, b.x1, b.y1, b.x2, b.y2) <= 32) return true;
-    }
-    return false;
-  }
-
-  // islands (two-layer: darker base + lighter top, like Mario World terrain)
-  function island(zone) {
-    var g = svgEl('g', { transform: 'translate(' + (zone.cx - 575) + ',' + (zone.cy - 350) + ')' });
-    g.appendChild(svgEl('path', { d: BLOB, fill: zone.dark, transform: 'translate(0,22)' }));
-    g.appendChild(svgEl('path', { d: BLOB, fill: zone.color }));
-    g.appendChild(svgEl('path', { d: BLOB, fill: 'none', stroke: 'rgba(255,255,255,.25)', 'stroke-width': 6 }));
-    mapSvg.appendChild(g);
-  }
-  ZONES.forEach(island);
-
-  // chief's house island (small)
-  (function houseIsland() {
-    var g = svgEl('g', { transform: 'translate(' + (HOUSE.x - 230) + ',' + (HOUSE.y - 140) + ') scale(.42)' });
-    g.appendChild(svgEl('path', { d: BLOB, fill: '#b9955a', transform: 'translate(0,22)' }));
-    g.appendChild(svgEl('path', { d: BLOB, fill: '#e7d9b8' }));
-    mapSvg.appendChild(g);
-  })();
-
-  // the house building itself
-  (function house() {
-    var g = svgEl('g', { transform: 'translate(' + HOUSE.x + ',' + HOUSE.y + ')' });
-    g.appendChild(svgEl('rect', { x: -78, y: -10, width: 156, height: 92, rx: 10, fill: '#efe1c0' }));
-    g.appendChild(svgEl('polygon', { points: '-96,-10 0,-78 96,-10', fill: '#1b2a4d' }));
-    g.appendChild(svgEl('rect', { x: -22, y: 32, width: 44, height: 50, rx: 4, fill: '#5c3a1f' }));
-    g.appendChild(svgEl('rect', { x: -58, y: 8, width: 26, height: 26, rx: 3, fill: '#8fd3ff' }));
-    g.appendChild(svgEl('rect', { x: 32, y: 8, width: 26, height: 26, rx: 3, fill: '#8fd3ff' }));
-    mapSvg.appendChild(g);
-  })();
-
-  // zone names (small painted sign, low-key — not a hard divider, just a label)
-  ZONES.forEach(function (zone) {
-    var g = svgEl('g', { transform: 'translate(' + zone.cx + ',' + (zone.cy - 330) + ')' });
-    var w = zone.name.length * 8.4 + 30;
-    g.appendChild(svgEl('rect', { x: -w / 2, y: -16, width: w, height: 32, rx: 16, fill: 'rgba(15,22,40,.45)' }));
-    var t = svgEl('text', { x: 0, y: 6, 'text-anchor': 'middle', fill: '#fff', 'font-family': "'Baloo 2',sans-serif", 'font-weight': '700', 'font-size': '18' });
-    t.textContent = zone.name;
-    g.appendChild(t);
-    mapSvg.appendChild(g);
-  });
-
-  // ---------- Decorations ----------
-  DECOR.forEach(function (d) {
-    var el = document.createElement('div');
-    el.className = 'decor';
-    el.textContent = d.e;
-    el.style.left = d.x + 'px'; el.style.top = d.y + 'px';
-    world.appendChild(el);
-  });
-
-  // ---------- Character + NPC sprite builder ----------
-  function scoutSvg(shirt, pantsColor, scarfG, scarfY, hatHtml) {
-    return '<svg viewBox="0 0 150 180" width="64" height="77" class="figure-svg">' +
-      '<ellipse cx="75" cy="168" rx="30" ry="7" fill="#000" opacity=".22"/>' +
-      '<g class="leg leg-l" style="transform-origin:63px 128px">' +
-        '<rect x="55" y="128" width="16" height="36" rx="8" fill="' + pantsColor + '"/>' +
-        '<rect x="52" y="158" width="22" height="10" rx="5" fill="#171717"/>' +
-      '</g>' +
-      '<g class="leg leg-r" style="transform-origin:87px 128px">' +
-        '<rect x="79" y="128" width="16" height="36" rx="8" fill="' + pantsColor + '"/>' +
-        '<rect x="76" y="158" width="22" height="10" rx="5" fill="#171717"/>' +
-      '</g>' +
-      '<g class="torso-bob">' +
-        '<rect x="42" y="82" width="66" height="54" rx="22" fill="' + shirt + '"/>' +
-        '<path d="M42 104 a22 22 0 0 1 22 -22 l0 54 a22 22 0 0 1 -22 -22 Z" fill="#000" opacity=".1"/>' +
-        '<rect x="106" y="88" width="18" height="40" rx="9" fill="' + shirt + '" transform="rotate(-8 106 88)"/>' +
-        '<rect x="26" y="88" width="18" height="40" rx="9" fill="' + shirt + '" transform="rotate(8 26 88)"/>' +
-        '<circle cx="30" cy="128" r="9" fill="#f2c49c"/><circle cx="120" cy="128" r="9" fill="#f2c49c"/>' +
-        '<path d="M50 80 L75 100 L100 80 L92 72 L75 86 L58 72 Z" fill="' + scarfY + '"/>' +
-        '<path d="M53 80 L75 97 L97 80 L91 74 L75 88 L59 74 Z" fill="' + scarfG + '"/>' +
-        '<circle cx="75" cy="52" r="32" fill="#f2c49c"/>' +
-        '<path d="M75 20 a32 32 0 0 1 0 64 Z" fill="#000" opacity=".06"/>' +
-        '<circle cx="62" cy="54" r="12" fill="#f4cfa6" opacity=".6"/>' +
-        (hatHtml || '<path d="M43 50 A32 29 0 0 1 107 50 L103 38 A29 24 0 0 0 47 38 Z" fill="#3b2a1e"/>') +
-        '<circle cx="63" cy="54" r="4" fill="#2a1d14"/><circle cx="87" cy="54" r="4" fill="#2a1d14"/>' +
-        '<circle cx="64.5" cy="52.5" r="1.3" fill="#fff"/><circle cx="88.5" cy="52.5" r="1.3" fill="#fff"/>' +
-        '<path d="M64 66 Q75 74 86 66" stroke="#2a1d14" stroke-width="3" stroke-linecap="round" fill="none"/>' +
-        '<circle cx="52" cy="62" r="6" fill="#e5486f" opacity=".35"/><circle cx="98" cy="62" r="6" fill="#e5486f" opacity=".35"/>' +
-      '</g>' +
-      '</svg>';
-  }
-
+  // ---------- Character + NPC sprites ----------
+  // Illustrated portrait art (assets/char-*.png) instead of procedurally-built
+  // SVG figures. Each image keeps its own natural aspect ratio; only the
+  // on-screen height is set, scaled per character via `scale`.
   var character = document.createElement('div');
   character.className = 'sprite';
-  character.innerHTML = '<img id="player-img" src="assets/escoteiro.png" alt="">';
+  character.innerHTML = '<img id="player-img" class="figure-img" src="assets/char-player.png" alt="">';
   world.appendChild(character);
   var charPos = { x: SPAWN.x, y: SPAWN.y };
 
   // ---------- NPCs ----------
   var NPC_DEFS = [
     { id:'bp', name:'Baden-Powell', phrase:'O meio para a felicidade é contribuir para a felicidade dos outros.',
-      home:{ x: HOUSE.x + 90, y: HOUSE.y + 50 }, radius: 35,
-      svg: scoutSvg('#c9b27c', '#c9b27c', '#2f8f46', '#f2c230',
-        '<g><rect x="33" y="40" width="84" height="8" rx="4" fill="#ab9568"/><ellipse cx="75" cy="36" rx="28" ry="18" fill="#ab9568"/></g>') },
+      home:{ x: HOUSE.x + 40, y: HOUSE.y - 10 }, radius: 30, img:'assets/char-bp.png' },
     { id:'chief2', name:'Chefe Escoteiro', phrase:'Eu não sou o Garcia.',
-      home:{ x: 1980, y: 1600 }, radius: 45,
-      svg: scoutSvg('#1c5c34', '#d9c7a3', '#2f8f46', '#f2c230', null) },
+      home:{ x: 1733, y: 1294 }, radius: 40, img:'assets/char-chief2.png' },
     { id:'lobinho', name:'Lobinho', phrase:'Melhor Possível!',
-      home:{ x: 680, y: 1600 }, radius: 45, scale: 0.72,
-      svg: scoutSvg('#f2c230', '#d9c7a3', '#2f8f46', '#f2c230',
-        '<g><circle cx="75" cy="44" r="27" fill="#2f4a7a"/></g>') },
+      home:{ x: 774, y: 1381 }, radius: 40, scale: 0.8, img:'assets/char-lobinho.png' },
     { id:'santos', name:'Santos Dumont', phrase:'Catapulta não é avião.',
-      home:{ x: 1980, y: 810 }, radius: 45,
-      svg: scoutSvg('#e8dcc0', '#e8dcc0', '#e8dcc0', '#e8dcc0',
-        '<g><rect x="33" y="40" width="84" height="8" rx="4" fill="#6b4a2c"/><ellipse cx="75" cy="35" rx="27" ry="17" fill="#6b4a2c"/></g>') }
+      home:{ x: 1793, y: 599 }, radius: 40, img:'assets/char-santos.png' }
   ];
   var npcList = NPC_DEFS.map(function (def) {
     var el = document.createElement('div');
     el.className = 'sprite';
-    el.innerHTML = def.svg;
-    // Base size matches the player sprite's on-screen height (~84x101) so no
-    // character looks out of scale next to another.
-    var s = def.scale || 1;
-    var npcW = 84 * s, npcH = 101 * s;
-    el.style.width = npcW + 'px'; el.style.height = npcH + 'px';
-    var innerSvg = el.querySelector('svg');
-    innerSvg.setAttribute('width', npcW); innerSvg.setAttribute('height', npcH);
+    el.innerHTML = '<img class="figure-img" src="' + def.img + '" alt="">';
+    el.querySelector('img').style.height = (120 * (def.scale || 1)) + 'px';
     world.appendChild(el);
     return {
       def: def, el: el,
@@ -620,8 +642,7 @@
     pad.style.left = item.x + 'px'; pad.style.top = item.y + 'px';
     var ring = document.createElement('div');
     ring.className = 'ring';
-    ring.style.background = item.eixoColor;
-    ring.textContent = item.emoji;
+    ring.innerHTML = '<img src="assets/items/' + item.id + '.png" alt="">';
     pad.appendChild(ring);
     world.appendChild(pad);
     itemEls[item.id] = pad;
@@ -630,6 +651,17 @@
 
   // ---------- Game state ----------
   var moveTarget = null;
+  var moveQueue = [];
+  function setMoveTarget(targetX, targetY) {
+    var tx = Math.max(40, Math.min(WORLD_W - 40, targetX));
+    var ty = Math.max(40, Math.min(WORLD_H - 40, targetY));
+    // The click target itself may be off the path network (an item "floats"
+    // a little to the side of its node, a tap can land on grass/water/roof),
+    // so route to the nearest walkable point and only step those last few
+    // pixels onto the actual target — still close enough for pickup radius.
+    moveQueue = findPathRoute(charPos.x, charPos.y, tx, ty);
+    moveTarget = moveQueue.shift();
+  }
   var pursuedItemId = null;
   var pursuedNpcId = null;
   var modalOpen = false;
@@ -661,10 +693,7 @@
       var entry = itemById[id];
       var slot = document.createElement('div');
       slot.className = 'inv-slot';
-      slot.style.background = entry.data.eixoColor;
-      var emoji = document.createElement('span');
-      emoji.textContent = entry.data.emoji;
-      slot.appendChild(emoji);
+      slot.innerHTML = '<img src="assets/items/' + id + '.png" alt="">';
       var removeBtn = document.createElement('button');
       removeBtn.type = 'button'; removeBtn.className = 'inv-remove'; removeBtn.textContent = '×';
       removeBtn.setAttribute('aria-label', 'Devolver ao mapa');
@@ -675,10 +704,9 @@
   }
 
   function openModal(entry) {
-    modalOpen = true; moveTarget = null;
+    modalOpen = true; moveTarget = null; moveQueue = [];
     var item = entry.data;
-    modalBadge.style.background = item.eixoColor;
-    modalBadge.textContent = item.emoji;
+    modalBadge.innerHTML = '<img src="assets/items/' + item.id + '.png" alt="">';
     modalName.textContent = item.name;
     modalEixo.textContent = item.eixo.toUpperCase();
     modalQuestion.textContent = item.question;
@@ -701,7 +729,7 @@
   // ---------- Chief's house ----------
   function enterChiefRoom() {
     inChiefRoom = true;
-    moveTarget = null; pursuedItemId = null; pursuedNpcId = null;
+    moveTarget = null; moveQueue = []; pursuedItemId = null; pursuedNpcId = null;
     chiefOverlay.classList.add('open');
     renderChiefBody();
   }
@@ -727,18 +755,27 @@
   }
 
   function availableBackpackIds() { return backpack.filter(function (id) { return placedSlots.indexOf(id) === -1; }); }
-  function placeItem(id) {
-    var slot = placedSlots.indexOf(null);
-    if (slot === -1) return;
-    placedSlots[slot] = id;
-    renderChiefBody();
-  }
   function placeItemAt(id, idx) {
     if (placedSlots[idx]) return;
     placedSlots[idx] = id;
     renderChiefBody();
   }
   function unplaceSlot(i) { placedSlots[i] = null; renderChiefBody(); }
+
+  // Tapping an item (in the available tray or already placed in the grid)
+  // shows what the specialty means instead of moving it — placement in the
+  // 3x3 grid only happens by dragging the item onto a slot.
+  function showItemInfo(id) {
+    var entry = itemById[id];
+    if (!entry) return;
+    var item = entry.data;
+    itemInfoBadge.innerHTML = '<img src="assets/items/' + item.id + '.png" alt="">';
+    itemInfoName.textContent = item.name;
+    itemInfoEixo.textContent = item.eixo.toUpperCase();
+    itemInfoDesc.textContent = item.question;
+    itemInfoOverlay.classList.add('open');
+  }
+  itemInfoClose.addEventListener('click', function () { itemInfoOverlay.classList.remove('open'); });
 
   // Pointer-based drag (works for touch and mouse alike — no hover needed).
   function makeItemDraggable(el, id) {
@@ -754,19 +791,27 @@
           ghost.style.position = 'fixed';
           ghost.style.zIndex = '50';
           ghost.style.pointerEvents = 'none';
-          ghost.style.background = el.style.background;
           ghost.style.transform = 'scale(1.2)';
           ghost.style.boxShadow = '0 8px 18px rgba(0,0,0,.4)';
-          ghost.textContent = el.textContent;
+          ghost.innerHTML = el.innerHTML;
           document.body.appendChild(ghost);
           el.style.opacity = '.35';
         }
         if (ghost) { ghost.style.left = (mv.clientX - 20) + 'px'; ghost.style.top = (mv.clientY - 20) + 'px'; }
+        if (moved) {
+          var overEl = document.elementFromPoint(mv.clientX, mv.clientY);
+          var overSlot = overEl ? overEl.closest('.grid-slot') : null;
+          var allSlots = chiefBody.querySelectorAll('.grid-slot');
+          for (var si = 0; si < allSlots.length; si++) allSlots[si].classList.remove('drag-over');
+          if (overSlot && !overSlot.classList.contains('filled')) overSlot.classList.add('drag-over');
+        }
       }
       function onUp(upEv) {
         document.removeEventListener('pointermove', onMove);
         el.style.opacity = '';
         if (ghost) ghost.remove();
+        var allSlots = chiefBody.querySelectorAll('.grid-slot');
+        for (var si = 0; si < allSlots.length; si++) allSlots[si].classList.remove('drag-over');
         if (moved) {
           el._wasDragged = true;
           var target = document.elementFromPoint(upEv.clientX, upEv.clientY);
@@ -810,9 +855,14 @@
       slot.dataset.idx = i;
       if (id) {
         var entry = itemById[id];
-        slot.style.background = entry.data.eixoColor; slot.style.borderColor = entry.data.eixoColor;
-        slot.textContent = entry.data.emoji;
-        slot.onclick = function () { unplaceSlot(i); };
+        slot.style.borderColor = entry.data.eixoColor;
+        slot.innerHTML = '<img src="assets/items/' + id + '.png" alt="">';
+        slot.onclick = function () { showItemInfo(id); };
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button'; removeBtn.className = 'grid-remove'; removeBtn.textContent = '×';
+        removeBtn.setAttribute('aria-label', 'Tirar da mochila final');
+        removeBtn.onclick = function (ev) { ev.stopPropagation(); unplaceSlot(i); };
+        slot.appendChild(removeBtn);
       }
       grid.appendChild(slot);
     });
@@ -824,7 +874,7 @@
     chiefBody.appendChild(progress);
 
     var availLabel = document.createElement('div'); availLabel.id = 'chief-available-label';
-    availLabel.textContent = 'ARRASTE PRA MOCHILA FINAL (OU TOQUE)';
+    availLabel.textContent = 'ARRASTE PRA MOCHILA FINAL · TOQUE PRA VER O QUE SIGNIFICA';
     chiefBody.appendChild(availLabel);
 
     var availRow = document.createElement('div'); availRow.id = 'chief-available-row';
@@ -838,12 +888,12 @@
     avail.forEach(function (id) {
       var entry = itemById[id];
       var btn = document.createElement('button');
-      btn.className = 'inv-slot'; btn.type = 'button'; btn.style.background = entry.data.eixoColor;
+      btn.className = 'inv-slot'; btn.type = 'button';
       btn.style.touchAction = 'none';
-      btn.textContent = entry.data.emoji;
+      btn.innerHTML = '<img src="assets/items/' + id + '.png" alt="">';
       btn.onclick = function () {
         if (btn._wasDragged) { btn._wasDragged = false; return; }
-        placeItem(id);
+        showItemInfo(id);
       };
       makeItemDraggable(btn, id);
       availRow.appendChild(btn);
@@ -925,7 +975,7 @@
       tappedNpc.frozen = true;
       pursuedNpcId = tappedNpc.def.id;
       pursuedItemId = null;
-      moveTarget = { x: tappedNpc.x, y: tappedNpc.y };
+      setMoveTarget(tappedNpc.x, tappedNpc.y);
       return;
     }
     if (activeNpc) hideNpcBubble();
@@ -939,10 +989,10 @@
     });
     if (nearestItem) {
       pursuedItemId = nearestItem.id; pursuedNpcId = null;
-      moveTarget = { x: nearestItem.x, y: nearestItem.y };
+      setMoveTarget(nearestItem.x, nearestItem.y);
     } else {
       pursuedItemId = null; pursuedNpcId = null;
-      moveTarget = { x: Math.max(40, Math.min(WORLD_W - 40, p.x)), y: Math.max(40, Math.min(WORLD_H - 40, p.y)) };
+      setMoveTarget(p.x, p.y);
     }
   });
 
@@ -950,27 +1000,20 @@
   function drawMinimap() {
     var w = minimapCanvas.width, h = minimapCanvas.height;
     minimapCtx.clearRect(0, 0, w, h);
-    minimapCtx.fillStyle = '#4a9cc4'; minimapCtx.fillRect(0, 0, w, h);
     function toMini(wx, wy) { return [(wx / WORLD_W) * w, (wy / WORLD_H) * h]; }
-    // islands: approximate the organic blob as a wide ellipse at its real position/size
-    ZONES.forEach(function (zone) {
-      var p = toMini(zone.cx, zone.cy);
-      var rx = toMini(575, 0)[0], ry = toMini(0, 350)[1];
-      minimapCtx.fillStyle = zone.color;
-      minimapCtx.beginPath(); minimapCtx.ellipse(p[0], p[1], rx, ry, 0, 0, Math.PI * 2); minimapCtx.fill();
-    });
-    var hp = toMini(HOUSE.x, HOUSE.y);
-    minimapCtx.fillStyle = '#e7d9b8';
-    minimapCtx.beginPath(); minimapCtx.ellipse(hp[0], hp[1], toMini(242, 0)[0], toMini(0, 147)[1], 0, 0, Math.PI * 2); minimapCtx.fill();
+    if (mapBg.complete && mapBg.naturalWidth) {
+      minimapCtx.drawImage(mapBg, 0, 0, w, h);
+    } else {
+      minimapCtx.fillStyle = '#4a9cc4'; minimapCtx.fillRect(0, 0, w, h);
+    }
     // collectible items still on the map
-    minimapCtx.fillStyle = 'rgba(255,255,255,.85)';
+    minimapCtx.fillStyle = 'rgba(255,255,255,.9)';
     ITEMS.forEach(function (item) {
       if (itemById[item.id].taken) return;
       var p = toMini(item.x, item.y);
-      minimapCtx.beginPath(); minimapCtx.arc(p[0], p[1], 1.4, 0, Math.PI * 2); minimapCtx.fill();
+      minimapCtx.beginPath(); minimapCtx.arc(p[0], p[1], 1.6, 0, Math.PI * 2); minimapCtx.fill();
     });
-    // house marker + character
-    minimapCtx.fillStyle = '#e8a23d'; minimapCtx.fillRect(hp[0] - 2.5, hp[1] - 2.5, 5, 5);
+    // character
     var cp = toMini(charPos.x, charPos.y);
     minimapCtx.fillStyle = '#ffffff';
     minimapCtx.beginPath(); minimapCtx.arc(cp[0], cp[1], 3.2, 0, Math.PI * 2); minimapCtx.fill();
@@ -988,8 +1031,9 @@
       var dx = moveTarget.x - charPos.x, dy = moveTarget.y - charPos.y;
       var d = Math.hypot(dx, dy);
       if (d < 4) {
-        charPos.x = moveTarget.x; charPos.y = moveTarget.y; moveTarget = null;
-        character.classList.remove('walking');
+        charPos.x = moveTarget.x; charPos.y = moveTarget.y;
+        moveTarget = moveQueue.length ? moveQueue.shift() : null;
+        if (!moveTarget) character.classList.remove('walking');
       } else {
         var step = Math.min(MOVE_SPEED * dt, d);
         var nextX = charPos.x + (dx / d) * step, nextY = charPos.y + (dy / d) * step;
@@ -998,7 +1042,7 @@
           character.style.transform = 'translate(-50%,-100%) scaleX(' + (dx < 0 ? -1 : 1) + ')';
           character.classList.add('walking');
         } else {
-          moveTarget = null; pursuedItemId = null; pursuedNpcId = null;
+          moveTarget = null; moveQueue = []; pursuedItemId = null; pursuedNpcId = null;
           character.classList.remove('walking');
         }
       }
@@ -1016,7 +1060,7 @@
         var npc = npcList.filter(function (n) { return n.def.id === pursuedNpcId; })[0];
         if (npc && dist(charPos.x, charPos.y, npc.x, npc.y) < 70) { showNpcBubble(npc); pursuedNpcId = null; }
       }
-      if (dist(charPos.x, charPos.y, HOUSE_DOOR.x, HOUSE_DOOR.y) < HOUSE_RADIUS) { enterChiefRoom(); }
+      if (!moveQueue.length && dist(charPos.x, charPos.y, HOUSE_DOOR.x, HOUSE_DOOR.y) < HOUSE_RADIUS) { enterChiefRoom(); }
     }
 
     // NPC wandering
