@@ -1,0 +1,1156 @@
+<title>Mapa da Trilha</title>
+<style>
+  /* Layout: body is a flex column — #game-wrap (3D canvas + floating HUD) on top,
+     a solid #inventory-panel docked below it (outside the game viewport, per feedback).
+     #chief-overlay is a separate full-screen scene that covers everything when the
+     player enters the chief's house. Single committed dark-navy theme. */
+  :root{
+    --bg:#121d36;
+    --surface:#1b2a4d;
+    --surface-2:#223562;
+    --line:#2d3f6b;
+    --ink:#f4efe4;
+    --ink-dim:#a9b4d1;
+    --accent:#e8a23d;
+    --meio:#49b572;
+    --paz:#3d7cc9;
+    --saude:#e08a62;
+    --habilidades:#e5486f;
+    --font-display:'Baloo 2', ui-rounded, system-ui, sans-serif;
+    --font-body:'Nunito', system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;overflow:hidden;background:var(--bg)}
+  body{font-family:var(--font-body);color:var(--ink);display:flex;flex-direction:column}
+
+  #game-wrap{position:relative;flex:1;min-height:0}
+  #scene-wrap{position:absolute;inset:0}
+  #scene{display:block;width:100%;height:100%;touch-action:none}
+
+  #hud-top{
+    position:absolute;top:0;left:0;right:0;z-index:5;
+    padding:max(14px, env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) 10px max(16px, env(safe-area-inset-left,0px));
+    display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(to bottom, rgba(18,29,54,.85), rgba(18,29,54,0));
+    pointer-events:none;
+  }
+  #hud-top .title{font-family:var(--font-display);font-weight:700;font-size:15px}
+  #minimap-wrap{
+    width:100px;height:72px;border-radius:12px;overflow:hidden;border:1px solid var(--line);
+    background:rgba(10,16,30,.75);box-shadow:0 4px 12px rgba(0,0,0,.3);
+  }
+  #minimap{display:block;width:100%;height:100%}
+
+  #hint{
+    position:absolute;left:0;right:0;bottom:0;z-index:5;text-align:center;
+    padding:0 20px 14px;pointer-events:none;
+  }
+  #hint span{
+    display:inline-block;background:rgba(27,42,77,.88);border:1px solid var(--line);border-radius:999px;
+    padding:7px 14px;font-size:11.5px;color:var(--ink-dim);
+  }
+
+  #loading{
+    position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;
+    background:var(--bg);color:var(--ink-dim);font-family:var(--font-display);font-size:14px;gap:10px;flex-direction:column;
+  }
+  #loading .spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(244,239,228,.2);border-top-color:var(--accent);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Dedicated inventory panel — a real layout block below the game view, not an overlay on top of it */
+  #inventory-panel{
+    flex:none;background:var(--surface);border-top:1px solid var(--line);
+    padding:9px max(14px, env(safe-area-inset-right,0px)) max(9px, env(safe-area-inset-bottom,0px)) max(14px, env(safe-area-inset-left,0px));
+    display:flex;flex-direction:column;gap:6px;
+  }
+  #inventory-label{font-family:var(--font-display);font-weight:700;font-size:11.5px;color:var(--ink-dim);letter-spacing:.03em}
+  #inventory-row{
+    display:flex;gap:7px;overflow-x:auto;padding:2px 2px 6px;
+  }
+  #inventory-row::-webkit-scrollbar{height:6px}
+  #inventory-row::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  #inventory-empty{font-size:11.5px;color:var(--ink-dim);padding:9px 4px}
+  .inv-slot{
+    position:relative;flex:none;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font-size:19px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25);border:none;
+  }
+  .inv-slot.ghost{background:transparent!important;box-shadow:inset 0 0 0 2px var(--line);opacity:.5}
+  .inv-remove{
+    position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
+    background:#c0314f;color:#fff;border:1.5px solid var(--bg);font-size:12px;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s ease;
+  }
+  .inv-slot:hover .inv-remove{opacity:1}
+  @media (hover:none){ .inv-remove{opacity:.9} }
+
+  .npc-bubble{
+    position:absolute;transform:translate(-50%,-100%);max-width:200px;padding:9px 13px;
+    border-radius:14px 14px 14px 3px;background:#fff4d8;color:#6a4408;border:1px solid #edc178;
+    font-family:var(--font-body);font-weight:700;font-size:12.5px;line-height:1.35;text-align:center;
+    box-shadow:0 6px 16px rgba(0,0,0,.3);pointer-events:none;display:none;z-index:6;
+  }
+
+  /* Item leva/deixa modal */
+  #modal-overlay{
+    position:fixed;inset:0;z-index:15;display:none;align-items:flex-end;justify-content:center;
+    background:rgba(10,16,30,.55);padding:0 20px max(24px, env(safe-area-inset-bottom,0px));
+  }
+  #modal-overlay.open{display:flex}
+  #modal-card{
+    width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:26px;
+    padding:26px 22px;display:flex;flex-direction:column;align-items:center;gap:16px;
+    box-shadow:0 -10px 30px rgba(0,0,0,.35);
+  }
+  #modal-badge{
+    width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 0 4px rgba(255,255,255,.2);font-size:36px;
+  }
+  #modal-name{font-family:var(--font-display);font-size:19px;text-align:center}
+  #modal-eixo{font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--ink-dim);text-align:center}
+  #modal-question{margin:0;text-align:center;font-size:15px;line-height:1.5;color:#e6e1d4}
+  #modal-choices{display:flex;gap:10px;width:100%}
+  .choice-btn{
+    flex:1;border:2px solid var(--line);background:transparent;color:var(--ink);font-family:var(--font-body);
+    font-weight:800;font-size:14px;border-radius:999px;padding:13px 0;cursor:pointer;
+  }
+  .choice-btn.leva{border-color:var(--meio)}
+  .choice-btn.leva:active{background:var(--meio);color:#0d2016}
+  .choice-btn.deixa:active{background:#3a4568}
+
+  .zone-label{
+    position:absolute;transform:translate(-50%,-50%);padding:5px 12px;border-radius:999px;
+    font-family:var(--font-display);font-weight:700;font-size:12px;color:#0d1626;
+    white-space:nowrap;pointer-events:none;box-shadow:0 4px 10px rgba(0,0,0,.25);
+  }
+
+  /* Chief's house — full-screen scene, replaces the map while open */
+  #chief-overlay{
+    position:fixed;inset:0;z-index:20;display:none;flex-direction:column;background:var(--bg);
+    background-image:radial-gradient(circle at 20% 0%, rgba(255,255,255,.05), transparent 45%);
+  }
+  #chief-overlay.open{display:flex}
+  #chief-stage{
+    flex:none;position:relative;z-index:2;background:var(--bg);box-shadow:0 6px 14px rgba(0,0,0,.25);
+    padding:max(10px, env(safe-area-inset-top,0px)) 20px 8px;display:flex;flex-direction:row;align-items:center;gap:10px;
+  }
+  #chief-stage svg{width:62px;height:74px;flex:none}
+  #chief-door-btn{
+    position:absolute;top:max(14px, env(safe-area-inset-top,0px));left:max(14px, env(safe-area-inset-left,0px));z-index:3;
+    background:var(--surface);border:1px solid var(--line);border-radius:999px;color:var(--ink);
+    font-family:var(--font-body);font-weight:800;font-size:11px;padding:6px 12px;cursor:pointer;
+  }
+  #chief-speech{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 12px;max-width:260px;
+    font-size:11.5px;line-height:1.38;text-align:left;color:#e6e1d4;
+  }
+  #chief-body{
+    flex:1;min-height:0;overflow-y:auto;position:relative;z-index:1;background:var(--bg);
+    padding:12px 20px max(20px, env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+
+  .grid-3x3{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:6px}
+  .grid-slot{
+    border-radius:12px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;
+    font-size:20px;cursor:pointer;background:var(--surface);
+  }
+  .grid-slot.filled{border-style:solid}
+
+  #chief-available-label{font-size:10.5px;font-weight:800;color:var(--ink-dim);letter-spacing:.03em;align-self:flex-start}
+  #chief-available-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:380px}
+
+  #chief-progress{font-family:var(--font-display);font-size:13px}
+  #chief-deliver-btn{
+    width:100%;max-width:320px;border:none;border-radius:999px;padding:13px 0;font-family:var(--font-display);
+    font-weight:700;font-size:14px;cursor:pointer;background:var(--accent);color:#16223e;flex:none;
+  }
+  #chief-deliver-btn:disabled{opacity:.4;cursor:not-allowed}
+
+  .rank-row{width:100%;max-width:340px;display:flex;align-items:center;gap:12px}
+  .rank-row span.label{font-size:11.5px;font-weight:800;width:98px;line-height:1.2}
+  .rank-row .track{flex:1;height:14px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+  .rank-row .fill{height:100%;border-radius:99px}
+  .rank-row span.pct{font-family:var(--font-display);font-weight:700;font-size:13px;width:34px;text-align:right}
+</style>
+
+<div id="loading"><div class="spin"></div>Montando o mapa…</div>
+
+<div id="game-wrap">
+  <div id="scene-wrap">
+    <canvas id="scene"></canvas>
+    <div id="zone-labels"></div>
+    <div id="npc-layer"></div>
+  </div>
+  <div id="hud-top">
+    <span class="title">Mapa da Trilha</span>
+    <div id="minimap-wrap"><canvas id="minimap" width="100" height="72"></canvas></div>
+  </div>
+  <div id="hint"><span>Toque pra andar e coletar · leve seus itens até a casinha do chefe</span></div>
+</div>
+
+<div id="inventory-panel">
+  <div id="inventory-label">MOCHILA</div>
+  <div id="inventory-row"><span id="inventory-empty">Sua mochila está vazia</span></div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal-card">
+    <div id="modal-badge"></div>
+    <div>
+      <div id="modal-name"></div>
+      <div id="modal-eixo"></div>
+    </div>
+    <p id="modal-question"></p>
+    <div id="modal-choices">
+      <button class="choice-btn leva" id="btn-leva" type="button">Levo 🎒</button>
+      <button class="choice-btn deixa" id="btn-deixa" type="button">Deixo</button>
+    </div>
+  </div>
+</div>
+
+<div id="chief-overlay">
+  <button id="chief-door-btn" type="button">← Voltar ao mapa</button>
+  <div id="chief-stage">
+    <svg viewBox="0 0 150 180">
+      <ellipse cx="75" cy="168" rx="38" ry="7" fill="#000" opacity=".25"/>
+      <rect x="55" y="130" width="16" height="34" rx="8" fill="#d9c7a3"/>
+      <rect x="79" y="130" width="16" height="34" rx="8" fill="#d9c7a3"/>
+      <rect x="52" y="158" width="22" height="10" rx="5" fill="#171717"/>
+      <rect x="76" y="158" width="22" height="10" rx="5" fill="#171717"/>
+      <rect x="42" y="82" width="66" height="54" rx="22" fill="#1c5c34"/>
+      <rect x="60" y="100" width="30" height="20" rx="6" fill="#154a29"/>
+      <rect x="26" y="88" width="18" height="40" rx="9" fill="#1c5c34" transform="rotate(8 26 88)"/>
+      <rect x="106" y="88" width="18" height="40" rx="9" fill="#1c5c34" transform="rotate(-8 106 88)"/>
+      <circle cx="30" cy="128" r="9" fill="#f2c49c"/>
+      <circle cx="120" cy="128" r="9" fill="#f2c49c"/>
+      <path d="M50 80 L75 100 L100 80 L92 72 L75 86 L58 72 Z" fill="#f2c230"/>
+      <path d="M53 80 L75 97 L97 80 L91 74 L75 88 L59 74 Z" fill="#2f8f46"/>
+      <circle cx="75" cy="52" r="32" fill="#f2c49c"/>
+      <circle cx="62" cy="54" r="12" fill="#f4cfa6" opacity=".6"/>
+      <path d="M43 50 A32 29 0 0 1 107 50 L103 38 A29 24 0 0 0 47 38 Z" fill="#3b2a1e"/>
+      <circle cx="63" cy="54" r="4" fill="#2a1d14"/>
+      <circle cx="87" cy="54" r="4" fill="#2a1d14"/>
+      <circle cx="64.5" cy="52.5" r="1.3" fill="#fff"/>
+      <circle cx="88.5" cy="52.5" r="1.3" fill="#fff"/>
+      <path d="M64 66 Q75 74 86 66" stroke="#2a1d14" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="52" cy="62" r="6" fill="#e5486f" opacity=".35"/>
+      <circle cx="98" cy="62" r="6" fill="#e5486f" opacity=".35"/>
+    </svg>
+    <div id="chief-speech"></div>
+  </div>
+  <div id="chief-body"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var ZONES = [
+    { key:'meio', name:'Meio Ambiente', color:0x49b572, cx:-5, cz:-3.5 },
+    { key:'paz', name:'Paz e Desenvolvimento', color:0x3d7cc9, cx:5, cz:-3.5 },
+    { key:'saude', name:'Saúde e Bem-estar', color:0xe08a62, cx:-5, cz:3.5 },
+    { key:'habilidades', name:'Habilidades para a Vida', color:0xe5486f, cx:5, cz:3.5 }
+  ];
+
+  var ITEMS = [
+    // Habilidades para a Vida
+    { id:'comunicacoes', name:'Microfone', zone:'habilidades', emoji:'🎙️', question:'Você curtiria criar um podcast, canal ou jornal sobre um tema que te interessa?' },
+    { id:'educacao', name:'Cartilha', zone:'habilidades', emoji:'📘', question:'Você gostaria de ensinar algo que sabe pra outros jovens, tipo um tutor?' },
+    { id:'empreendedorismo', name:'Lâmpada de Ideia', zone:'habilidades', emoji:'💡', question:'Você tem vontade de criar um pequeno negócio ou projeto próprio do zero?' },
+    { id:'financas', name:'Cofrinho', zone:'habilidades', emoji:'🐷', question:'Você tem interesse em aprender a organizar melhor o seu dinheiro?' },
+    { id:'gastronomia', name:'Touca de Chef', zone:'habilidades', emoji:'👨‍🍳', question:'Você curtiria aprender técnicas de cozinha e explorar comida de outras culturas?' },
+    { id:'idiomas', name:'Globo de Idiomas', zone:'habilidades', emoji:'🌐', question:'Você gostaria de aprender um novo idioma ou se comunicar com gente de outro país?' },
+    { id:'lideranca', name:'Prancheta', zone:'habilidades', emoji:'📋', question:'Você sente vontade de liderar um projeto ou organizar um grupo de pessoas?' },
+    { id:'tecnologia', name:'Robô', zone:'habilidades', emoji:'🤖', question:'Você curtiria programar, montar um robô ou mexer com tecnologia na prática?' },
+    { id:'viagens', name:'Mala de Viagem', zone:'habilidades', emoji:'🧳', question:'Você gostaria de planejar um intercâmbio ou um grande evento escoteiro internacional?' },
+    // Meio Ambiente
+    { id:'agricultura', name:'Muda de Planta', zone:'meio', emoji:'🌱', question:'Você teria interesse em cuidar de uma horta ou composteira?' },
+    { id:'ecoturismo', name:'Botas de Trilha', zone:'meio', emoji:'🥾', question:'Você curtiria planejar trilhas ecológicas responsáveis?' },
+    { id:'educacao-ambiental', name:'Gota d’Água', zone:'meio', emoji:'💧', question:'Você sente vontade de criar uma campanha pra cuidar do meio ambiente na sua região?' },
+    { id:'esportes-aventura', name:'Capacete', zone:'meio', emoji:'⛑️', question:'Você topa encarar trilhas, escaladas ou esportes ao ar livre com técnica e segurança?' },
+    { id:'habilidades-escoteiras', name:'Corda de Pioneiria', zone:'meio', emoji:'🪢', question:'Você gostaria de aprender a amarrar nós pra montar um acampamento do zero?' },
+    { id:'natureza', name:'Lupa', zone:'meio', emoji:'🔍', question:'Você tem curiosidade de observar de perto plantas, bichos ou fenômenos da natureza?' },
+    { id:'sustentabilidade', name:'Painel Solar', zone:'meio', emoji:'☀️', question:'Você se interessa por formas de reduzir o impacto do seu consumo no planeta?' },
+    // Paz e Desenvolvimento
+    { id:'humanitarias', name:'Gota de Sangue', zone:'paz', emoji:'🩸', question:'Você gostaria de participar de uma ação de ajuda a quem precisa?' },
+    { id:'ciencias-humanas', name:'Livro Antigo', zone:'paz', emoji:'📜', question:'Você gosta de entender como a sociedade funciona e por que as coisas são como são?' },
+    { id:'cultura-arte', name:'Pincel', zone:'paz', emoji:'🖌️', question:'Você curtiria explorar manifestações culturais diferentes da sua?' },
+    { id:'desenvolvimento-comunitario', name:'Mapa do Bairro', zone:'paz', emoji:'🗺️', question:'Você sente vontade de mapear os desafios do seu bairro e propor soluções?' },
+    { id:'direitos-humanos', name:'Balança da Justiça', zone:'paz', emoji:'⚖️', question:'Você se importa em entender e defender os direitos das pessoas?' },
+    { id:'diversidades', name:'Peça de Quebra-cabeça', zone:'paz', emoji:'🧩', question:'Você gosta de conhecer formas de viver diferentes da sua?' },
+    { id:'equidade', name:'Degrau', zone:'paz', emoji:'🪜', question:'Você se interessa em entender por que as oportunidades não são iguais pra todo mundo?' },
+    { id:'fe-dialogo', name:'Vela', zone:'paz', emoji:'🕯️', question:'Você tem curiosidade sobre como pessoas de fés diferentes vivem a espiritualidade?' },
+    { id:'inclusao', name:'Cadeira de Rodas', zone:'paz', emoji:'♿', question:'Você gostaria de ajudar a tornar lugares mais acessíveis pra todo mundo?' },
+    { id:'politicas-publicas', name:'Urna de Votação', zone:'paz', emoji:'🗳️', question:'Você tem interesse em entender como funciona o poder público e participar disso?' },
+    // Saúde e Bem-estar
+    { id:'alimentar', name:'Fruta', zone:'saude', emoji:'🍎', question:'Você se interessa em entender como a alimentação afeta seu corpo e o planeta?' },
+    { id:'esportes', name:'Bola', zone:'saude', emoji:'⚽', question:'Você gostaria de se envolver mais com esportes, seja jogando ou organizando?' },
+    { id:'hobbies', name:'Dado de Jogo', zone:'saude', emoji:'🎲', question:'Você tem um hobby que adoraria compartilhar com outras pessoas?' },
+    { id:'saude', name:'Estetoscópio', zone:'saude', emoji:'🩺', question:'Você tem curiosidade de entender melhor como o corpo funciona e se cuidar?' },
+    { id:'saude-mental', name:'Diário de Emoções', zone:'saude', emoji:'📔', question:'Você tem vontade de entender melhor o que sente e aprender a falar sobre isso?' },
+    { id:'saude-sexual', name:'Fita de Conscientização', zone:'saude', emoji:'🎗️', question:'Você se sente à vontade pra buscar informação séria sobre corpo e autocuidado?' }
+  ];
+
+  var MAP_HALF_X = 17, MAP_HALF_Z = 12, PICKUP_RADIUS = 1.35, MOVE_SPEED = 5.4, KEEP_LIMIT = 9;
+
+  // Spread each zone's items across a grid inside that quadrant, clear of the center path and corner props.
+  (function layoutItems() {
+    var byZone = {};
+    ITEMS.forEach(function (it) { (byZone[it.zone] = byZone[it.zone] || []).push(it); });
+    ZONES.forEach(function (zone) {
+      var list = byZone[zone.key] || [];
+      var signX = zone.cx < 0 ? -1 : 1, signZ = zone.cz < 0 ? -1 : 1;
+      var cols = Math.ceil(Math.sqrt(list.length));
+      var rows = Math.ceil(list.length / cols);
+      var xNear = 1.6, xFar = MAP_HALF_X - 3.2;
+      var zNear = 1.6, zFar = MAP_HALF_Z - 3.2;
+      list.forEach(function (it, i) {
+        var col = i % cols, row = Math.floor(i / cols);
+        var fx = cols > 1 ? col / (cols - 1) : 0.5;
+        var fz = rows > 1 ? row / (rows - 1) : 0.5;
+        it.x = signX * (xNear + fx * (xFar - xNear));
+        it.z = signZ * (zNear + fz * (zFar - zNear));
+        it.eixo = zone.name;
+        it.eixoColor = zone.color;
+      });
+    });
+  })();
+
+  var HOUSE = { x: 0, z: -MAP_HALF_Z + 2.4 };
+  var HOUSE_DOOR = { x: 0, z: HOUSE.z + 2.1 };
+  var HOUSE_RADIUS = 1.7;
+
+  var canvas = document.getElementById('scene');
+  var loading = document.getElementById('loading');
+  var inventoryRow = document.getElementById('inventory-row');
+  var inventoryEmpty = document.getElementById('inventory-empty');
+  var minimapCanvas = document.getElementById('minimap');
+  var minimapCtx = minimapCanvas.getContext('2d');
+  var modalOverlay = document.getElementById('modal-overlay');
+  var modalBadge = document.getElementById('modal-badge');
+  var modalName = document.getElementById('modal-name');
+  var modalEixo = document.getElementById('modal-eixo');
+  var modalQuestion = document.getElementById('modal-question');
+  var btnLeva = document.getElementById('btn-leva');
+  var btnDeixa = document.getElementById('btn-deixa');
+  var zoneLabelsLayer = document.getElementById('zone-labels');
+  var chiefOverlay = document.getElementById('chief-overlay');
+  var chiefDoorBtn = document.getElementById('chief-door-btn');
+  var chiefSpeech = document.getElementById('chief-speech');
+  var chiefBody = document.getElementById('chief-body');
+
+  function showError(msg) {
+    loading.innerHTML = '';
+    loading.style.flexDirection = 'column';
+    loading.style.padding = '0 32px';
+    loading.style.textAlign = 'center';
+    var title = document.createElement('div');
+    title.style.fontFamily = "'Baloo 2',sans-serif";
+    title.style.fontSize = '16px';
+    title.style.color = '#f4efe4';
+    title.textContent = 'Não consegui abrir o mapa 3D';
+    var detail = document.createElement('div');
+    detail.style.fontSize = '12px';
+    detail.style.marginTop = '8px';
+    detail.style.color = '#a9b4d1';
+    detail.textContent = msg;
+    loading.appendChild(title);
+    loading.appendChild(detail);
+  }
+
+  if (!window.THREE) { showError('A biblioteca 3D (Three.js) não carregou.'); return; }
+
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  } catch (err) {
+    showError('Este navegador não conseguiu criar um contexto WebGL (' + (err && err.message ? err.message : 'erro desconhecido') + ').');
+    return;
+  }
+  try {
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0c1426);
+  scene.fog = new THREE.Fog(0x0c1426, 30, 54);
+
+  // Follow-camera: a small viewport that pans with the character, so the map
+  // reads at phone scale instead of showing the whole (now much bigger) map at once.
+  var VIEW_RADIUS = 6;
+  var CAMERA_OFFSET = { x: 0, y: 15, z: 9 };
+  var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+  var camFollow = { x: 0, z: 5.6 };
+
+  function fitCamera() {
+    var w = canvas.clientWidth || window.innerWidth;
+    var h = canvas.clientHeight || window.innerHeight;
+    var aspect = w / h;
+    var halfW = VIEW_RADIUS;
+    var halfH = Math.max(halfW / aspect, 4);
+    camera.left = -halfW; camera.right = halfW;
+    camera.top = halfH; camera.bottom = -halfH;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  }
+  function updateCamera(dt) {
+    var smooth = 1 - Math.pow(0.0015, dt);
+    camFollow.x += (character.position.x - camFollow.x) * smooth;
+    camFollow.z += (character.position.z - camFollow.z) * smooth;
+    camera.position.set(camFollow.x + CAMERA_OFFSET.x, CAMERA_OFFSET.y, camFollow.z + CAMERA_OFFSET.z);
+    camera.lookAt(camFollow.x, 0, camFollow.z);
+  }
+
+  function mat(color, rough) {
+    return new THREE.MeshStandardMaterial({ color: color, roughness: rough === undefined ? 0.85 : rough, metalness: 0 });
+  }
+  function box(parent, w, h, d, material, x, y, z) {
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+    m.position.set(x || 0, y || 0, z || 0); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
+  }
+  function cylinder(parent, rt, rb, h, material, x, y, z, seg) {
+    var m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg || 14), material);
+    m.position.set(x || 0, y || 0, z || 0); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
+  }
+  function sphere(parent, r, material, x, y, z) {
+    var m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), material);
+    m.position.set(x || 0, y || 0, z || 0); m.castShadow = true; parent.add(m); return m;
+  }
+  function cone(parent, r, h, seg, material, x, y, z) {
+    var m = new THREE.Mesh(new THREE.ConeGeometry(r, h, seg), material);
+    m.position.set(x || 0, y || 0, z || 0); m.castShadow = true; parent.add(m); return m;
+  }
+  function makeEmojiSprite(emoji, px) {
+    var c = document.createElement('canvas');
+    c.width = px; c.height = px;
+    var ctx = c.getContext('2d');
+    ctx.font = Math.round(px * 0.72) + 'px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, px / 2, px / 2 + px * 0.04);
+    var tex = new THREE.CanvasTexture(c);
+    var spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+    return new THREE.Sprite(spriteMat);
+  }
+
+  // Lighting
+  scene.add(new THREE.HemisphereLight(0xdfeeff, 0x1a2338, 1.15));
+  var sun = new THREE.DirectionalLight(0xfff0d2, 1.6);
+  sun.position.set(-8, 16, 8); sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
+  sun.shadow.camera.top = 16; sun.shadow.camera.bottom = -12;
+  scene.add(sun);
+
+  // Ground zones
+  var groundGroup = new THREE.Group(); scene.add(groundGroup);
+  ZONES.forEach(function (zone) {
+    var signX = zone.cx < 0 ? -1 : 1, signZ = zone.cz < 0 ? -1 : 1;
+    var w = MAP_HALF_X - 0.35, d = MAP_HALF_Z - 0.35;
+    var plane = box(groundGroup, w, 0.2, d, mat(zone.color, 0.95), signX * (w / 2 + 0.3), -0.1, signZ * (d / 2 + 0.3));
+    plane.receiveShadow = true;
+  });
+  // sandy crossing path between zones
+  var pathMat = mat(0xead9b8, 0.9);
+  box(groundGroup, MAP_HALF_X * 2 + 1, 0.21, 0.9, pathMat, 0, -0.09, 0);
+  box(groundGroup, 0.9, 0.21, MAP_HALF_Z * 2 + 1, pathMat, 0, -0.09, 0);
+
+  // A single invisible raycast plane spanning the whole map (for move-target picking)
+  var pickPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(MAP_HALF_X * 4, MAP_HALF_Z * 4),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  pickPlane.rotation.x = -Math.PI / 2;
+  scene.add(pickPlane);
+
+  // Decorative props
+  function addTree(x, z, s) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s || 1); groundGroup.add(g);
+    cylinder(g, 0.18, 0.22, 1.1, mat(0x6b4a2c, 0.9), 0, 0.55, 0);
+    sphere(g, 0.75, mat(0x2f8f46, 0.85), 0, 1.5, 0);
+    sphere(g, 0.5, mat(0x3fa85a, 0.85), 0.45, 1.75, 0.3);
+  }
+  function addPillar(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    cylinder(g, 0.26, 0.32, 1.8, mat(0xd9e2ea, 0.5), 0, 0.9, 0, 10);
+    sphere(g, 0.34, mat(0xf4efe4, 0.4), 0, 1.95, 0);
+  }
+  function addBench(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    box(g, 1.3, 0.12, 0.45, mat(0x8a5a33, 0.8), 0, 0.5, 0);
+    box(g, 0.1, 0.5, 0.1, mat(0x5c3a1f, 0.8), -0.55, 0.25, 0);
+    box(g, 0.1, 0.5, 0.1, mat(0x5c3a1f, 0.8), 0.55, 0.25, 0);
+  }
+  function addFlag(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    cylinder(g, 0.07, 0.07, 2.1, mat(0xd9d2c2, 0.4), 0, 1.05, 0, 8);
+    box(g, 0.7, 0.45, 0.04, mat(0xe5486f, 0.7), 0.37, 1.75, 0);
+  }
+  function addRock(x, z, s) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = (x * 7 % 6); g.scale.setScalar(s || 1); groundGroup.add(g);
+    box(g, 0.5, 0.32, 0.4, mat(0x8893a0, 0.95), 0, 0.16, 0);
+    box(g, 0.3, 0.22, 0.28, mat(0x9aa4b0, 0.95), 0.22, 0.11, 0.1);
+  }
+  function addBush(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    sphere(g, 0.32, mat(0x3a9a56, 0.85), 0, 0.3, 0);
+    sphere(g, 0.24, mat(0x4bb366, 0.85), 0.26, 0.24, 0.1);
+    sphere(g, 0.2, mat(0x3a9a56, 0.85), -0.2, 0.2, -0.1);
+  }
+  function addAnimal(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    box(g, 0.34, 0.2, 0.18, mat(0xc9a06a, 0.8), 0, 0.22, 0);
+    sphere(g, 0.13, mat(0xc9a06a, 0.8), 0.2, 0.3, 0);
+    box(g, 0.03, 0.12, 0.03, mat(0xc9a06a, 0.8), 0.15, 0.4, 0.05);
+    box(g, 0.03, 0.12, 0.03, mat(0xc9a06a, 0.8), 0.25, 0.4, 0.05);
+    box(g, 0.04, 0.16, 0.04, mat(0x8f6c3f, 0.8), -0.14, 0.12, 0.07);
+    box(g, 0.04, 0.16, 0.04, mat(0x8f6c3f, 0.8), 0.14, 0.12, 0.07);
+  }
+  function addRiverSegment(x, z, w, d) {
+    var m = mat(0x3d8fc9, 0.25);
+    var mesh = box(groundGroup, w, 0.07, d, m, x, -0.06, z);
+    mesh.receiveShadow = true;
+  }
+  function addBridge(x, z, len, rotY) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotY || 0; groundGroup.add(g);
+    box(g, len, 0.1, 1.1, mat(0x8a5a33, 0.75), 0, 0.1, 0);
+    box(g, len, 0.3, 0.06, mat(0x6b4421, 0.75), 0, 0.3, 0.55);
+    box(g, len, 0.3, 0.06, mat(0x6b4421, 0.75), 0, 0.3, -0.55);
+  }
+  function addGovBuilding(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    box(g, 3, 1.8, 2, mat(0xeae3d4, 0.6), 0, 0.9, 0);
+    box(g, 3.3, 0.14, 2.3, mat(0xd8cfba, 0.6), 0, 1.87, 0);
+    for (var i = -1; i <= 1; i++) cylinder(g, 0.1, 0.1, 1.5, mat(0xf4efe4, 0.5), i * 1.0, 0.75, 1.05, 10);
+    box(g, 3, 0.1, 0.5, mat(0xcfc6b0, 0.6), 0, 0.05, 1.5);
+  }
+  function addWallSegment(x, z, len, rotY) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotY || 0; groundGroup.add(g);
+    box(g, len, 0.55, 0.22, mat(0x9aa0ab, 0.85), 0, 0.27, 0);
+    box(g, len, 0.08, 0.26, mat(0x7f8792, 0.85), 0, 0.57, 0);
+  }
+  function addPerson(x, z, shirtColor, scale, armUp) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(scale || 0.8); groundGroup.add(g);
+    box(g, 0.14, 0.4, 0.14, mat(0x3c4a73, 0.8), -0.1, 0.2, 0);
+    box(g, 0.14, 0.4, 0.14, mat(0x3c4a73, 0.8), 0.1, 0.2, 0);
+    box(g, 0.4, 0.46, 0.26, mat(shirtColor, 0.8), 0, 0.62, 0);
+    sphere(g, 0.18, mat(0xf2c49c, 0.8), 0, 1.0, 0);
+    if (armUp) {
+      box(g, 0.12, 0.3, 0.12, mat(shirtColor, 0.8), -0.28, 0.78, 0).rotation.z = 0.9;
+      box(g, 0.12, 0.3, 0.12, mat(shirtColor, 0.8), 0.28, 0.78, 0).rotation.z = -0.9;
+    }
+  }
+  function addDancingGroup(x, z) {
+    addPerson(x - 0.4, z, 0xe5486f, 0.78, true);
+    addPerson(x + 0.3, z + 0.3, 0xe8a23d, 0.75, true);
+    addPerson(x, z - 0.4, 0x3d7cc9, 0.8, true);
+  }
+  function addAmbulance(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    box(g, 1.7, 0.75, 0.9, mat(0xf3f1ea, 0.4), 0, 0.5, 0);
+    box(g, 0.6, 0.5, 0.86, mat(0xf3f1ea, 0.35), 0.75, 0.42, 0);
+    box(g, 0.34, 0.06, 0.04, mat(0xc0314f, 0.6), -0.1, 0.55, 0.46);
+    box(g, 0.06, 0.34, 0.04, mat(0xc0314f, 0.6), -0.1, 0.55, 0.46);
+    box(g, 0.5, 0.1, 0.5, mat(0x3d7cc9, 0.4), 0.2, 0.92, 0);
+    cylinder(g, 0.16, 0.16, 0.1, mat(0x111111, 0.6), -0.55, 0.16, 0.42, 14);
+    cylinder(g, 0.16, 0.16, 0.1, mat(0x111111, 0.6), 0.55, 0.16, 0.42, 14);
+    cylinder(g, 0.16, 0.16, 0.1, mat(0x111111, 0.6), -0.55, 0.16, -0.42, 14);
+    cylinder(g, 0.16, 0.16, 0.1, mat(0x111111, 0.6), 0.55, 0.16, -0.42, 14);
+  }
+  function addHospital(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    box(g, 3.4, 2.4, 2.4, mat(0xf6f3ec, 0.55), 0, 1.2, 0);
+    box(g, 0.9, 0.12, 0.08, mat(0xc0314f, 0.5), 0, 2.0, 1.21);
+    box(g, 0.12, 0.9, 0.08, mat(0xc0314f, 0.5), 0, 2.0, 1.21);
+  }
+  function addEasel(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    cylinder(g, 0.025, 0.025, 1.1, mat(0x8a5a33, 0.8), -0.25, 0.55, -0.15, 6).rotation.z = 0.25;
+    cylinder(g, 0.025, 0.025, 1.1, mat(0x8a5a33, 0.8), 0.25, 0.55, -0.15, 6).rotation.z = -0.25;
+    cylinder(g, 0.025, 0.025, 0.9, mat(0x8a5a33, 0.8), 0, 0.5, 0.2, 6);
+    box(g, 0.55, 0.42, 0.03, mat(0xf4efe4, 0.4), 0, 0.95, -0.1);
+    box(g, 0.5, 0.2, 0.01, mat(0x4bb366, 0.3), 0, 0.85, -0.085);
+    addPerson(x + 0.5, z + 0.2, 0xe08a62, 0.78, false);
+  }
+  function addFamilyPark(x, z) {
+    addBench(x, z);
+    addPerson(x - 0.5, z + 0.6, 0xf2c230, 0.55, true);
+    addPerson(x + 0.5, z + 0.7, 0x49b572, 0.55, true);
+    sphere(groundGroup, 0.14, mat(0xe5486f, 0.6), x + 0.1, 0.14, z + 1.1);
+  }
+  function addPioneeringTower(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    var bamboo = mat(0xc9ad6a, 0.8);
+    var legs = [[-0.55, -0.3], [0.55, -0.3], [0, 0.5]];
+    legs.forEach(function (p) {
+      var pole = cylinder(g, 0.045, 0.06, 2.1, bamboo, p[0] * 0.55, 1.0, p[1] * 0.55, 8);
+      var dx = -p[0], dz = -p[1];
+      pole.rotation.x = Math.atan2(dz, 2.1) * 0.5;
+      pole.rotation.z = Math.atan2(dx, 2.1) * 0.5;
+    });
+    box(g, 0.7, 0.05, 0.05, bamboo, 0, 1.3, 0);
+    box(g, 0.45, 0.3, 0.02, mat(0x3d7cc9, 0.6), 0, 2.0, 0);
+  }
+  function addMechanic(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    box(g, 1.6, 0.5, 0.8, mat(0xc0314f, 0.5), 0, 0.45, 0);
+    box(g, 1.0, 0.32, 0.76, mat(0xa8283f, 0.5), 0, 0.78, 0);
+    cylinder(g, 0.18, 0.18, 0.12, mat(0x111111, 0.6), -0.55, 0.2, 0.44, 14);
+    cylinder(g, 0.18, 0.18, 0.12, mat(0x111111, 0.6), 0.55, 0.2, 0.44, 14);
+    cylinder(g, 0.18, 0.18, 0.12, mat(0x111111, 0.6), -0.55, 0.2, -0.44, 14);
+    cylinder(g, 0.18, 0.18, 0.12, mat(0x111111, 0.6), 0.55, 0.2, -0.44, 14);
+    addPerson(x + 0.9, z, 0x3d7cc9, 0.78, false);
+  }
+  function addFlowerBed(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); groundGroup.add(g);
+    box(g, 1.1, 0.1, 0.6, mat(0x3a9a56, 0.85), 0, 0.05, 0);
+    var colors = [0xe5486f, 0xf2c230, 0xf4efe4, 0xe08a62];
+    for (var i = 0; i < 6; i++) {
+      sphere(g, 0.08, mat(colors[i % colors.length], 0.6), -0.4 + i * 0.16, 0.14, (i % 2) * 0.16 - 0.08);
+    }
+  }
+
+  var innerCornerX = MAP_HALF_X - 1.7, innerCornerZ = MAP_HALF_Z - 1.7;
+  addTree(-innerCornerX, -innerCornerZ); addPillar(innerCornerX, -innerCornerZ);
+  addBench(-innerCornerX, innerCornerZ); addFlag(innerCornerX, innerCornerZ);
+  // extra scattered decoration, kept near the outer margin so it stays clear of the item grid
+  addTree(-innerCornerX + 2.4, -innerCornerZ - 0.6, 0.7);
+  addBush(-innerCornerX, -innerCornerZ + 2.6);
+  addRock(innerCornerX - 2.2, -innerCornerZ + 0.4, 1.1);
+  addBush(innerCornerX, -innerCornerZ + 2.4);
+  addRock(-innerCornerX + 1.8, innerCornerZ - 0.3, 0.9);
+  addBush(-innerCornerX, innerCornerZ - 2.4);
+  addTree(innerCornerX - 2.2, innerCornerZ + 0.5, 0.75);
+  addRock(innerCornerX, innerCornerZ - 2.3, 1);
+
+  // Zone-themed scenery — all kept in the outer margin band beyond the item grid
+  // (xFar/zFar ≈ MAP_HALF-3.2), so nothing sits on top of a collection point.
+  // Meio Ambiente (back-left): river, animals, extra trees
+  addRiverSegment(-14.5, -MAP_HALF_Z + 1.3, 3.4, 1.1);
+  addRiverSegment(-11.6, -MAP_HALF_Z + 1.9, 3.2, 1.1);
+  addBridge(-9.2, -MAP_HALF_Z + 0.9, 1.3, 0.5);
+  addAnimal(-15.2, -9.3);
+  addAnimal(-13.6, -3.4);
+  addTree(-15.8, -5.8, 0.85);
+
+  // Paz e Desenvolvimento (back-right): government building, wall, dancing group
+  addGovBuilding(14.6, -innerCornerZ - 0.2);
+  addWallSegment(9.6, -MAP_HALF_Z + 1.0, 3.2, 0);
+  addDancingGroup(12.8, -3.2);
+  addFlowerBed(10.8, -8.0);
+
+  // Saúde e Bem-estar (front-left): hospital, ambulance, painters, family in the park
+  addHospital(-14.3, innerCornerZ + 0.3);
+  addAmbulance(-11.2, innerCornerZ + 1.1);
+  addEasel(-15.3, 3.6);
+  addFamilyPark(-9.3, 9.2);
+  addFlowerBed(-13.4, 5.2);
+
+  // Habilidades para a Vida (front-right): pioneering tower, mechanic, green areas
+  addPioneeringTower(14.8, 9.5);
+  addMechanic(9.6, innerCornerZ + 0.8);
+  addTree(15.7, 4.4, 0.8);
+  addBush(10.4, 4.0);
+
+  // Chief's house, near the top edge of the map
+  (function buildHouse() {
+    var g = new THREE.Group(); g.position.set(HOUSE.x, 0, HOUSE.z); scene.add(g);
+    box(g, 3.6, 2, 3, mat(0xe7d9b8, 0.75), 0, 1, 0);
+    cone(g, 2.9, 1.5, 4, mat(0x1b2a4d, 0.7), 0, 2.75, 0).rotation.y = Math.PI / 4;
+    box(g, 0.8, 1.3, 0.1, mat(0x5c3a1f, 0.7), 0, 0.65, 1.51);
+    box(g, 0.6, 0.6, 0.1, mat(0x8fd3ff, 0.3), -1.1, 1.15, 1.51);
+    box(g, 0.6, 0.6, 0.1, mat(0x8fd3ff, 0.3), 1.1, 1.15, 1.51);
+  })();
+
+  // Character
+  var SHIRT = 0x2f4a7a, PANTS = 0xd9c7a3, SHOES = 0x171717, SKIN = 0xf2c49c, HAIR = 0x3b2a1e, SCARF_G = 0x2f8f46, SCARF_Y = 0xf2c230;
+  var character = new THREE.Group();
+  character.position.set(0, 0, 5.6);
+  scene.add(character);
+  box(character, 0.17, 0.5, 0.17, mat(PANTS), -0.13, 0.25, 0);
+  box(character, 0.17, 0.5, 0.17, mat(PANTS), 0.13, 0.25, 0);
+  box(character, 0.2, 0.12, 0.24, mat(SHOES), -0.13, 0.06, 0.02);
+  box(character, 0.2, 0.12, 0.24, mat(SHOES), 0.13, 0.06, 0.02);
+  box(character, 0.5, 0.56, 0.3, mat(SHIRT), 0, 0.78, 0);
+  box(character, 0.15, 0.42, 0.15, mat(SHIRT), -0.34, 0.78, 0);
+  box(character, 0.15, 0.42, 0.15, mat(SHIRT), 0.34, 0.78, 0);
+  sphere(character, 0.22, mat(SKIN), 0, 1.25, 0);
+  box(character, 0.46, 0.18, 0.46, mat(HAIR), 0, 1.4, 0);
+  cylinder(character, 0.12, 0.14, 0.1, mat(SCARF_Y), 0, 1.07, 0.16, 6);
+  box(character, 0.2, 0.08, 0.02, mat(SCARF_G), 0, 1.0, 0.24);
+
+  // ---- NPCs: tap one to hear a line, tap elsewhere to dismiss ----
+  function buildScoutLike(shirtColor, scale, hatBuilder) {
+    var g = new THREE.Group(); g.scale.setScalar(scale || 1);
+    box(g, 0.17, 0.5, 0.17, mat(PANTS), -0.13, 0.25, 0);
+    box(g, 0.17, 0.5, 0.17, mat(PANTS), 0.13, 0.25, 0);
+    box(g, 0.2, 0.12, 0.24, mat(SHOES), -0.13, 0.06, 0.02);
+    box(g, 0.2, 0.12, 0.24, mat(SHOES), 0.13, 0.06, 0.02);
+    box(g, 0.5, 0.56, 0.3, mat(shirtColor), 0, 0.78, 0);
+    box(g, 0.15, 0.42, 0.15, mat(shirtColor), -0.34, 0.78, 0);
+    box(g, 0.15, 0.42, 0.15, mat(shirtColor), 0.34, 0.78, 0);
+    sphere(g, 0.22, mat(SKIN), 0, 1.25, 0);
+    cylinder(g, 0.12, 0.14, 0.1, mat(SCARF_Y), 0, 1.07, 0.16, 6);
+    box(g, 0.2, 0.08, 0.02, mat(SCARF_G), 0, 1.0, 0.24);
+    if (hatBuilder) hatBuilder(g); else box(g, 0.46, 0.18, 0.46, mat(HAIR), 0, 1.4, 0);
+    return g;
+  }
+  function buildLobinho(x, z) {
+    var g = buildScoutLike(0xf2c230, 0.72, function (g2) {
+      box(g2, 0.46, 0.18, 0.46, mat(HAIR), 0, 1.4, 0);
+      cylinder(g2, 0.25, 0.25, 0.13, mat(0x2f4a7a, 0.6), 0, 1.5, 0, 16);
+    });
+    g.position.set(x, 0, z);
+    scene.add(g);
+    return g;
+  }
+  function buildChiefNpc(x, z) {
+    var g = buildScoutLike(0x1c5c34, 1, null);
+    g.position.set(x, 0, z);
+    scene.add(g);
+    return g;
+  }
+  function buildBadenPowell(x, z) {
+    var KHAKI = 0xc9b27c, KHAKI_DARK = 0xab9568;
+    var g = buildScoutLike(KHAKI, 1, function (g2) {
+      cylinder(g2, 0.42, 0.42, 0.05, mat(KHAKI_DARK, 0.7), 0, 1.42, 0, 22);
+      cylinder(g2, 0.2, 0.25, 0.22, mat(KHAKI_DARK, 0.7), 0, 1.53, 0, 16);
+    });
+    // khaki legs too (Baden-Powell's uniform is all khaki, not the two-tone cut)
+    g.children[0].material = mat(KHAKI); g.children[1].material = mat(KHAKI);
+    g.position.set(x, 0, z);
+    scene.add(g);
+    return g;
+  }
+  function buildSantosDumont(x, z) {
+    var g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    var CREAM = mat(0xe8dcc0, 0.6), RED = mat(0xb23b3b, 0.6);
+    cylinder(g, 0.14, 0.14, 0.08, mat(0x222222, 0.7), -0.5, 0.14, 0, 12);
+    cylinder(g, 0.14, 0.14, 0.08, mat(0x222222, 0.7), 0.5, 0.14, 0, 12);
+    box(g, 1.5, 0.32, 0.32, CREAM, 0, 0.5, 0);
+    box(g, 0.3, 0.28, 0.28, RED, 0.72, 0.5, 0);
+    box(g, 0.3, 0.06, 1.7, CREAM, -0.1, 0.78, 0);
+    box(g, 0.04, 0.4, 0.3, RED, -0.72, 0.75, 0);
+    box(g, 0.3, 0.04, 0.5, RED, -0.72, 0.58, 0);
+    sphere(g, 0.16, mat(SKIN), 0.1, 0.78, 0);
+    box(g, 0.22, 0.22, 0.18, mat(SHIRT, 0.7), 0.1, 0.6, 0);
+    box(g, 0.04, 0.36, 0.04, mat(0x5c3a1f, 0.6), 0.88, 0.5, 0);
+    return g;
+  }
+
+  var npcList = [
+    { group: buildBadenPowell(0, HOUSE.z + 1.6), name: 'Baden-Powell', phrase: 'O meio para a felicidade é contribuir para a felicidade dos outros.', anchorY: 1.85 },
+    { group: buildChiefNpc(0, -3), name: 'Chefe Escoteiro', phrase: 'Eu não sou o Garcia.', anchorY: 1.7 },
+    { group: buildLobinho(0, 3), name: 'Lobinho', phrase: 'Melhor Possível!', anchorY: 1.3 },
+    { group: buildSantosDumont(2.3, 0.3), name: 'Santos Dumont', phrase: 'Catapulta não é avião.', anchorY: 1.35 }
+  ];
+
+  var npcLayer = document.getElementById('npc-layer');
+  var npcBubble = document.createElement('div');
+  npcBubble.className = 'npc-bubble';
+  npcLayer.appendChild(npcBubble);
+  var activeNpc = null;
+  function showNpcBubble(npc) { activeNpc = npc; npcBubble.textContent = npc.phrase; npcBubble.style.display = 'block'; }
+  function hideNpcBubble() { activeNpc = null; npcBubble.style.display = 'none'; }
+  var npcAnchorVec = new THREE.Vector3();
+
+  var moveTarget = null;
+  var facing = 0;
+
+  // Items — colored pad + a camera-facing sprite showing the actual emoji/image of the collectible
+  var ITEM_Y_BASE = 0.58;
+  var itemObjects = ITEMS.map(function (item) {
+    var g = new THREE.Group();
+    g.position.set(item.x, 0, item.z);
+    scene.add(g);
+    cylinder(g, 0.58, 0.58, 0.06, mat(item.eixoColor, 0.6), 0, 0.04, 0, 20);
+    var core = makeEmojiSprite(item.emoji, 96);
+    core.position.set(0, ITEM_Y_BASE, 0);
+    core.scale.set(0.62, 0.62, 1);
+    g.add(core);
+    return { data: item, group: g, core: core, taken: false, baseY: ITEM_Y_BASE, phase: Math.random() * Math.PI * 2 };
+  });
+  var itemById = {};
+  itemObjects.forEach(function (e) { itemById[e.data.id] = e; });
+
+  var modalOpen = false;
+  var inChiefRoom = false;
+  var backpack = [];
+  var pursuedItemId = null;
+  var placedSlots = [null, null, null, null, null, null, null, null, null];
+  var delivered = false;
+
+  function returnItemToMap(id) {
+    var entry = itemById[id];
+    if (!entry) return;
+    entry.taken = false;
+    entry.group.visible = true;
+    var bi = backpack.indexOf(id);
+    if (bi !== -1) backpack.splice(bi, 1);
+    var pi = placedSlots.indexOf(id);
+    if (pi !== -1) placedSlots[pi] = null;
+    renderInventory();
+  }
+
+  function renderInventory() {
+    inventoryRow.innerHTML = '';
+    if (backpack.length === 0) { inventoryRow.appendChild(inventoryEmpty); return; }
+    backpack.forEach(function (id) {
+      var entry = itemById[id];
+      var slot = document.createElement('div');
+      slot.className = 'inv-slot';
+      slot.style.background = '#' + entry.data.eixoColor.toString(16).padStart(6, '0');
+      var emoji = document.createElement('span');
+      emoji.textContent = entry.data.emoji;
+      slot.appendChild(emoji);
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'inv-remove';
+      removeBtn.textContent = '×';
+      removeBtn.setAttribute('aria-label', 'Devolver ao mapa');
+      removeBtn.onclick = function (ev) { ev.stopPropagation(); returnItemToMap(id); };
+      slot.appendChild(removeBtn);
+      inventoryRow.appendChild(slot);
+    });
+  }
+
+  function openModal(entry) {
+    modalOpen = true;
+    moveTarget = null;
+    var item = entry.data;
+    modalBadge.style.background = '#' + item.eixoColor.toString(16).padStart(6, '0');
+    modalBadge.textContent = item.emoji;
+    modalName.textContent = item.name;
+    modalEixo.textContent = item.eixo.toUpperCase();
+    modalQuestion.textContent = item.question;
+    modalOverlay.classList.add('open');
+    btnLeva.onclick = function () { resolveItem(entry, true); };
+    btnDeixa.onclick = function () { resolveItem(entry, false); };
+  }
+  function resolveItem(entry, leva) {
+    if (leva) {
+      entry.taken = true;
+      entry.group.visible = false;
+      backpack.push(entry.data.id);
+      renderInventory();
+    }
+    // "Deixo" keeps the item visible and tappable on the map — nothing is final:
+    // the player can walk back to it later and pick it up if they change their mind.
+    modalOverlay.classList.remove('open');
+    modalOpen = false;
+    pursuedItemId = null;
+  }
+
+  var raycaster = new THREE.Raycaster();
+  var pointerVec = new THREE.Vector2();
+
+  function onPointerDown(ev) {
+    if (modalOpen || inChiefRoom) return;
+    var rect = canvas.getBoundingClientRect();
+    var clientX = ev.clientX, clientY = ev.clientY;
+    pointerVec.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerVec.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerVec, camera);
+
+    var npcHits = raycaster.intersectObjects(npcList.map(function (n) { return n.group; }), true);
+    if (npcHits.length) {
+      var hitObj = npcHits[0].object;
+      var tappedNpc = null;
+      for (var ni = 0; ni < npcList.length; ni++) {
+        var o = hitObj;
+        while (o) { if (o === npcList[ni].group) { tappedNpc = npcList[ni]; break; } o = o.parent; }
+        if (tappedNpc) break;
+      }
+      if (tappedNpc) { showNpcBubble(tappedNpc); return; }
+    }
+    if (activeNpc) hideNpcBubble();
+
+    var hit = raycaster.intersectObject(pickPlane)[0];
+    if (!hit) return;
+    var x = Math.max(-MAP_HALF_X + 0.6, Math.min(MAP_HALF_X - 0.6, hit.point.x));
+    var z = Math.max(-MAP_HALF_Z + 0.6, Math.min(MAP_HALF_Z - 0.6, hit.point.z));
+
+    // Did the tap land near an unresolved item? If so, that item (and only
+    // that one) becomes the walk target, so brushing past another item on
+    // the way there never opens the wrong card.
+    var SELECT_RADIUS = 1.1;
+    var nearest = null, nearestDist = SELECT_RADIUS;
+    for (var i = 0; i < itemObjects.length; i++) {
+      var entry = itemObjects[i];
+      if (entry.taken) continue;
+      var dx = entry.data.x - hit.point.x, dz = entry.data.z - hit.point.z;
+      var d = Math.sqrt(dx * dx + dz * dz);
+      if (d < nearestDist) { nearest = entry; nearestDist = d; }
+    }
+    if (nearest) {
+      pursuedItemId = nearest.data.id;
+      moveTarget = { x: nearest.data.x, z: nearest.data.z };
+    } else {
+      pursuedItemId = null;
+      moveTarget = { x: x, z: z };
+    }
+  }
+  canvas.addEventListener('pointerdown', onPointerDown);
+
+  function drawMinimap() {
+    var w = minimapCanvas.width, h = minimapCanvas.height;
+    minimapCtx.clearRect(0, 0, w, h);
+    function toMini(wx, wz) {
+      return [((wx + MAP_HALF_X) / (MAP_HALF_X * 2)) * w, ((wz + MAP_HALF_Z) / (MAP_HALF_Z * 2)) * h];
+    }
+    ZONES.forEach(function (zone) {
+      var signX = zone.cx < 0 ? -1 : 1, signZ = zone.cz < 0 ? -1 : 1;
+      var p0 = toMini(signX < 0 ? -MAP_HALF_X : 0, signZ < 0 ? -MAP_HALF_Z : 0);
+      var p1 = toMini(signX < 0 ? 0 : MAP_HALF_X, signZ < 0 ? 0 : MAP_HALF_Z);
+      minimapCtx.fillStyle = '#' + zone.color.toString(16).padStart(6, '0');
+      minimapCtx.globalAlpha = 0.55;
+      minimapCtx.fillRect(Math.min(p0[0], p1[0]), Math.min(p0[1], p1[1]), Math.abs(p1[0] - p0[0]), Math.abs(p1[1] - p0[1]));
+    });
+    minimapCtx.globalAlpha = 1;
+    itemObjects.forEach(function (entry) {
+      if (!entry.group.visible) return;
+      var p = toMini(entry.data.x, entry.data.z);
+      minimapCtx.fillStyle = 'rgba(255,255,255,.75)';
+      minimapCtx.beginPath(); minimapCtx.arc(p[0], p[1], 1.3, 0, Math.PI * 2); minimapCtx.fill();
+    });
+    var hp = toMini(HOUSE.x, HOUSE.z);
+    minimapCtx.fillStyle = '#e8a23d';
+    minimapCtx.fillRect(hp[0] - 2.5, hp[1] - 2.5, 5, 5);
+    var cp = toMini(character.position.x, character.position.z);
+    minimapCtx.fillStyle = '#ffffff';
+    minimapCtx.beginPath(); minimapCtx.arc(cp[0], cp[1], 3, 0, Math.PI * 2); minimapCtx.fill();
+    minimapCtx.strokeStyle = '#16223e'; minimapCtx.lineWidth = 1; minimapCtx.stroke();
+  }
+
+  // ---- Chief's house ----
+  function enterChiefRoom() {
+    inChiefRoom = true;
+    moveTarget = null; pursuedItemId = null;
+    chiefOverlay.classList.add('open');
+    renderChiefBody();
+  }
+  function exitChiefRoom() {
+    inChiefRoom = false;
+    chiefOverlay.classList.remove('open');
+    character.position.z = HOUSE_DOOR.z + 2.3; // step back so the door doesn't instantly retrigger
+  }
+  chiefDoorBtn.addEventListener('click', exitChiefRoom);
+
+  function availableBackpackIds() {
+    return backpack.filter(function (id) { return placedSlots.indexOf(id) === -1; });
+  }
+  function placeItem(id) {
+    var slot = placedSlots.indexOf(null);
+    if (slot === -1) return;
+    placedSlots[slot] = id;
+    renderChiefBody();
+  }
+  function unplaceSlot(i) {
+    placedSlots[i] = null;
+    renderChiefBody();
+  }
+
+  function restartGame() {
+    backpack.forEach(function (id) {
+      var entry = itemById[id];
+      entry.taken = false;
+      entry.group.visible = true;
+    });
+    backpack = [];
+    placedSlots = [null, null, null, null, null, null, null, null, null];
+    delivered = false;
+    renderInventory();
+    character.position.set(0, 0, 5.6);
+    camFollow.x = 0; camFollow.z = 5.6;
+    exitChiefRoom();
+  }
+
+  function renderChiefBody() {
+    chiefBody.innerHTML = '';
+    chiefDoorBtn.style.display = delivered ? 'none' : '';
+    if (delivered) { renderResults(); return; }
+
+    if (backpack.length < KEEP_LIMIT) {
+      chiefSpeech.textContent = 'Você já coletou ' + backpack.length + ' de ' + KEEP_LIMIT + ' itens. Volte ao mapa e continue explorando — preciso ver pelo menos ' + KEEP_LIMIT + ' pra te ajudar a decidir.';
+      var backBtn = document.createElement('button');
+      backBtn.id = 'chief-deliver-btn';
+      backBtn.textContent = 'Voltar ao Mapa';
+      backBtn.onclick = exitChiefRoom;
+      chiefBody.appendChild(backBtn);
+      return;
+    }
+
+    chiefSpeech.textContent = backpack.length > KEEP_LIMIT
+      ? 'Você trouxe mais itens do que eu consigo avaliar de uma vez. Só posso levar em conta ' + KEEP_LIMIT + ' — escolha quais vão pra mochila final.'
+      : 'Perfeito, ' + KEEP_LIMIT + ' itens. Organize eles nos quadrados abaixo e me entregue quando estiver pronto.';
+
+    var grid = document.createElement('div');
+    grid.className = 'grid-3x3';
+    placedSlots.forEach(function (id, i) {
+      var slot = document.createElement('div');
+      slot.className = 'grid-slot' + (id ? ' filled' : '');
+      if (id) {
+        var entry = itemById[id];
+        slot.style.background = '#' + entry.data.eixoColor.toString(16).padStart(6, '0');
+        slot.style.borderColor = '#' + entry.data.eixoColor.toString(16).padStart(6, '0');
+        slot.textContent = entry.data.emoji;
+        slot.onclick = function () { unplaceSlot(i); };
+      }
+      grid.appendChild(slot);
+    });
+    chiefBody.appendChild(grid);
+
+    var placedCount = placedSlots.filter(Boolean).length;
+    var progress = document.createElement('div');
+    progress.id = 'chief-progress';
+    progress.textContent = placedCount + ' / ' + KEEP_LIMIT + ' posicionados';
+    chiefBody.appendChild(progress);
+
+    var availLabel = document.createElement('div');
+    availLabel.id = 'chief-available-label';
+    availLabel.textContent = 'TOQUE PRA COLOCAR NA MOCHILA FINAL';
+    chiefBody.appendChild(availLabel);
+
+    var availRow = document.createElement('div');
+    availRow.id = 'chief-available-row';
+    var avail = availableBackpackIds();
+    if (avail.length === 0) {
+      var doneMsg = document.createElement('span');
+      doneMsg.style.fontSize = '12px'; doneMsg.style.color = 'var(--ink-dim)';
+      doneMsg.textContent = 'Todos os itens disponíveis já foram posicionados.';
+      availRow.appendChild(doneMsg);
+    }
+    avail.forEach(function (id) {
+      var entry = itemById[id];
+      var btn = document.createElement('button');
+      btn.className = 'inv-slot';
+      btn.type = 'button';
+      btn.style.background = '#' + entry.data.eixoColor.toString(16).padStart(6, '0');
+      btn.textContent = entry.data.emoji;
+      btn.onclick = function () { placeItem(id); };
+      availRow.appendChild(btn);
+    });
+    chiefBody.appendChild(availRow);
+
+    var deliverBtn = document.createElement('button');
+    deliverBtn.id = 'chief-deliver-btn';
+    deliverBtn.textContent = 'Entregar para o Chefe';
+    deliverBtn.disabled = placedCount !== KEEP_LIMIT;
+    deliverBtn.onclick = function () { delivered = true; renderChiefBody(); };
+    chiefBody.appendChild(deliverBtn);
+  }
+
+  function renderResults() {
+    var tally = {};
+    ZONES.forEach(function (z) { tally[z.key] = 0; });
+    placedSlots.forEach(function (id) {
+      if (!id) return;
+      var entry = itemById[id];
+      tally[entry.data.zone] = (tally[entry.data.zone] || 0) + 1;
+    });
+    var ranked = ZONES.map(function (z) { return { zone: z, count: tally[z.key] || 0 }; })
+      .sort(function (a, b) { return b.count - a.count; });
+    var top = ranked[0].count;
+    var leaders = ranked.filter(function (r) { return r.count === top && top > 0; }).map(function (r) { return r.zone.name; });
+
+    chiefSpeech.textContent = leaders.length > 1
+      ? 'Vi um empate forte entre ' + leaders.join(' e ') + '. Vale a pena conhecer as duas oficinas antes de decidir.'
+      : (leaders.length === 1 ? 'Pela sua mochila, ' + leaders[0] + ' é onde você mostrou mais afinidade.' : 'Vamos ver o que a sua mochila me conta.');
+
+    ranked.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'rank-row';
+      var label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = r.zone.name;
+      var track = document.createElement('div');
+      track.className = 'track';
+      var fill = document.createElement('div');
+      fill.className = 'fill';
+      var pct = Math.round((r.count / KEEP_LIMIT) * 100);
+      fill.style.width = pct + '%';
+      fill.style.background = '#' + r.zone.color.toString(16).padStart(6, '0');
+      track.appendChild(fill);
+      var pctLabel = document.createElement('span');
+      pctLabel.className = 'pct';
+      pctLabel.textContent = pct + '%';
+      row.appendChild(label); row.appendChild(track); row.appendChild(pctLabel);
+      chiefBody.appendChild(row);
+    });
+
+    var restartBtn = document.createElement('button');
+    restartBtn.id = 'chief-deliver-btn';
+    restartBtn.textContent = 'Reiniciar o Jogo';
+    restartBtn.onclick = restartGame;
+    chiefBody.appendChild(restartBtn);
+  }
+
+  var clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    var t = clock.elapsedTime;
+
+    if (moveTarget && !modalOpen && !inChiefRoom) {
+      var dx = moveTarget.x - character.position.x;
+      var dz = moveTarget.z - character.position.z;
+      var dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < 0.08) {
+        character.position.x = moveTarget.x; character.position.z = moveTarget.z;
+        moveTarget = null;
+      } else {
+        var step = Math.min(MOVE_SPEED * dt, dist);
+        character.position.x += (dx / dist) * step;
+        character.position.z += (dz / dist) * step;
+        facing = Math.atan2(dx, dz);
+        character.rotation.y = facing;
+      }
+    }
+
+    if (!modalOpen && !inChiefRoom) {
+      if (pursuedItemId) {
+        var pursued = itemById[pursuedItemId];
+        if (!pursued || pursued.taken) {
+          pursuedItemId = null;
+        } else {
+          var ix = pursued.data.x - character.position.x, iz = pursued.data.z - character.position.z;
+          if (Math.sqrt(ix * ix + iz * iz) < PICKUP_RADIUS) { openModal(pursued); }
+        }
+      }
+      var hx = character.position.x - HOUSE_DOOR.x, hz = character.position.z - HOUSE_DOOR.z;
+      if (Math.sqrt(hx * hx + hz * hz) < HOUSE_RADIUS) { enterChiefRoom(); }
+    }
+
+    itemObjects.forEach(function (entry) {
+      if (!entry.group.visible) return;
+      var s = 0.62 * (1 + Math.sin(t * 2 + entry.phase) * 0.08);
+      entry.core.scale.set(s, s, 1);
+      entry.core.position.y = entry.baseY + Math.sin(t * 2 + entry.phase) * 0.08;
+    });
+
+    updateCamera(dt);
+
+    if (activeNpc) {
+      npcAnchorVec.set(activeNpc.group.position.x, activeNpc.anchorY, activeNpc.group.position.z);
+      var nv = npcAnchorVec.clone().project(camera);
+      npcBubble.style.left = ((nv.x * 0.5 + 0.5) * canvas.clientWidth) + 'px';
+      npcBubble.style.top = ((-nv.y * 0.5 + 0.5) * canvas.clientHeight) + 'px';
+    }
+
+    drawMinimap();
+    renderer.render(scene, camera);
+  }
+
+  function onResize() { fitCamera(); }
+  window.addEventListener('resize', onResize);
+  camFollow.x = character.position.x; camFollow.z = character.position.z;
+  updateCamera(0);
+  fitCamera();
+  loading.style.display = 'none';
+  animate();
+  } catch (err) {
+    console.error(err);
+    showError((err && err.message) ? err.message : 'erro desconhecido ao montar a cena.');
+  }
+})();
+</script>
