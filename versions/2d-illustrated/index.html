@@ -301,7 +301,7 @@
   // (scaled up for a comfortable camera range). Movement is restricted to a
   // hand-traced graph of path nodes/edges over the image (see "Path graph"
   // below) instead of "anywhere inside the island ellipse".
-  var MAP_IMG_W = 1515, MAP_IMG_H = 1038;
+  var MAP_IMG_W = 1516, MAP_IMG_H = 1038;
   var IMG_SCALE = 1.8;
   var WORLD_W = Math.round(MAP_IMG_W * IMG_SCALE), WORLD_H = Math.round(MAP_IMG_H * IMG_SCALE);
   function S(x, y) { return { x: Math.round(x * IMG_SCALE), y: Math.round(y * IMG_SCALE) }; }
@@ -328,27 +328,27 @@
   // ellipse-based zoneOf() like the old procedural map used.
   var NODE_DEF = {
     // Bridge-landing nodes below are pixel-traced onto the actual plank
-    // bridges in assets/map-bg.webp (via wood-color centerline detection) —
-    // the previous coordinates were up to ~50px off the bridge, which is what
-    // let the character "walk" over open water near every crossing.
-    house_meio_end: [651,143], house_center: [765,181], house_paz_end: [857,146],
+    // bridges in assets/map-bg.webp (via wood-color centerline detection),
+    // re-verified against each new map image so the character never "walks"
+    // over open water near a crossing.
+    house_meio_end: [647,154], house_center: [765,181], house_paz_end: [873,136],
 
-    meio_house_end: [609,175], meio_watchtower: [668,260], meio_campfire: [748,280],
-    meio_pazbridge: [725,312], meio_dock: [630,395], meio_bottom2: [668,470],
-    meio_bottom1: [538,490], meio_southbridge: [431,509],
+    meio_house_end: [620,174], meio_watchtower: [668,260], meio_campfire: [748,280],
+    meio_pazbridge: [739,321], meio_dock: [630,395], meio_bottom2: [668,470],
+    meio_bottom1: [538,490], meio_southbridge: [406,519],
     meio_footbridge_e: [538,330], meio_footbridge_w: [448,350],
     meio_west1: [348,400], meio_west2: [248,430], meio_west3: [168,410],
 
-    paz_house_end: [894,170], paz_plaza_n: [946,263], paz_statue: [996,333],
-    paz_meiobridge: [804,313], paz_plaza_s: [996,433], paz_shops: [1096,353],
-    paz_ruins: [1196,313], paz_gazebo: [1146,453], paz_habilidadesbridge: [1127,513],
+    paz_house_end: [885,169], paz_plaza_n: [946,263], paz_statue: [996,333],
+    paz_meiobridge: [790,320], paz_plaza_s: [996,433], paz_shops: [1096,353],
+    paz_ruins: [1196,313], paz_gazebo: [1146,453], paz_habilidadesbridge: [1146,544],
 
-    saude_meiobridge: [384,607], saude_hospital: [340,707], saude_kayaks: [240,777],
+    saude_meiobridge: [415,600], saude_hospital: [340,707], saude_kayaks: [240,777],
     saude_center: [430,767], saude_soccer: [610,707], saude_pond: [760,777],
-    saude_habilidadesbridge: [717,781], saude_playground: [590,867], saude_south: [430,847],
+    saude_habilidadesbridge: [736,786], saude_playground: [590,867], saude_south: [430,847],
 
-    habilidades_pazbridge: [1081,619], habilidades_cabin: [1063,689], habilidades_hub: [963,719],
-    habilidades_tower: [793,719], habilidades_saudebridge: [822,775], habilidades_farm: [963,799],
+    habilidades_pazbridge: [1109,608], habilidades_cabin: [1063,689], habilidades_hub: [963,719],
+    habilidades_tower: [793,719], habilidades_saudebridge: [804,787], habilidades_farm: [963,799],
     habilidades_satellite: [1163,769], habilidades_farm2: [913,869]
   };
   var NODE_ZONE = {
