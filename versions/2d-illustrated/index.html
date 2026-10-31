@@ -313,50 +313,74 @@
     { key:'habilidades', name:'Habilidades para a Vida', color:'#e5486f', cx:2041, cy:1384 }
   ];
 
-  var HOUSE = S(765, 181);
-  var HOUSE_DOOR = S(765, 156);
+  var HOUSE = S(765, 155);
+  var HOUSE_DOOR = S(765, 145);
   var HOUSE_RADIUS = 70;
   // Spawn on the house island but outside HOUSE_RADIUS (at the Meio Ambiente
   // bridge landing), so arriving doesn't instantly auto-open the chief's room.
-  var SPAWN = S(695, 171);
+  var SPAWN = S(687, 133);
 
   // ---------- Path graph ----------
-  // The character may only walk along these hand-traced nodes/edges (plus a
-  // small radius around each edge), matching the sandy/stone trails drawn
-  // into the map art. Each node also carries its zone, so item placement and
-  // the chief's-house auto-entry can stay zone-aware without a separate
-  // ellipse-based zoneOf() like the old procedural map used.
+  // This whole graph (nodes, edges, zones) was traced from the player's own
+  // hand-drawn route on the map image: the red line became this node/edge
+  // network (skeletonized + simplified from the drawing), the blue marks
+  // became the NPC spots below, and the green X's became ITEM_POS. The
+  // character may only walk along these nodes/edges (plus a small radius
+  // around each edge).
   var NODE_DEF = {
-    // Bridge-landing nodes below are pixel-traced onto the actual plank
-    // bridges in assets/map-bg.webp (via wood-color centerline detection),
-    // re-verified against each new map image so the character never "walks"
-    // over open water near a crossing.
-    house_meio_end: [647,154], house_center: [765,181], house_paz_end: [873,136],
-
-    meio_house_end: [620,174], meio_watchtower: [668,260], meio_campfire: [748,280],
-    meio_pazbridge: [739,321], meio_dock: [630,395], meio_bottom2: [668,470],
-    meio_bottom1: [538,490], meio_southbridge: [406,519],
-    meio_footbridge_e: [538,330], meio_footbridge_w: [448,350],
-    meio_west1: [348,400], meio_west2: [248,430], meio_west3: [168,410],
-
-    paz_house_end: [885,169], paz_plaza_n: [946,263], paz_statue: [996,333],
-    paz_meiobridge: [790,320], paz_plaza_s: [996,433], paz_shops: [1096,353],
-    paz_ruins: [1196,313], paz_gazebo: [1146,453], paz_habilidadesbridge: [1146,544],
-
-    saude_meiobridge: [415,600], saude_hospital: [340,707], saude_kayaks: [240,777],
-    saude_center: [430,767], saude_soccer: [610,707], saude_pond: [760,777],
-    saude_habilidadesbridge: [736,786], saude_playground: [590,867], saude_south: [430,847],
-
-    habilidades_pazbridge: [1109,608], habilidades_cabin: [1063,689], habilidades_hub: [963,719],
-    habilidades_tower: [793,719], habilidades_saudebridge: [804,787], habilidades_farm: [963,799],
-    habilidades_satellite: [1163,769], habilidades_farm2: [913,869]
+    p0:[428,178], p1:[441,265], p2:[469,265], p3:[1046,272], p4:[1197,284], p5:[593,288],
+    p6:[1069,299], p7:[540,302], p8:[428,310], p9:[1120,326], p10:[526,332], p11:[984,340],
+    p12:[1134,365], p13:[988,366], p14:[1228,393], p15:[1101,398], p16:[924,414], p17:[394,486],
+    p18:[1323,498], p19:[1085,587], p20:[1237,586], p21:[1203,603], p22:[1116,610], p23:[1143,611],
+    p24:[1252,611], p25:[914,616], p26:[1217,629], p27:[1105,641], p28:[1122,652], p29:[484,655],
+    p30:[1192,664], p31:[507,677], p32:[407,681], p33:[1075,682], p34:[842,682], p35:[1031,689],
+    p36:[1128,699], p37:[416,705], p38:[973,707], p39:[854,717], p40:[1266,722], p41:[1176,723],
+    p42:[992,727], p43:[543,728], p44:[964,736], p45:[306,749], p46:[1314,750], p47:[1186,772],
+    p48:[840,784], p49:[1319,782], p50:[427,788], p51:[599,797], p52:[1191,803], p53:[1206,803],
+    p54:[178,807], p55:[976,820], p56:[875,824], p57:[504,834], p58:[953,840], p59:[929,842],
+    p60:[1360,842], p61:[1014,867], p62:[1229,868], p63:[468,871], p64:[333,872], p65:[1276,885],
+    p66:[991,893], p67:[1006,894], p68:[315,895], p69:[1222,902], p70:[586,910], p71:[1192,914],
+    p72:[1240,916], p73:[1255,948], p74:[432,249], p75:[489,287], p76:[1062,280], p77:[1189,296],
+    p78:[1133,309], p79:[568,302], p80:[1093,320], p81:[1130,462], p82:[1130,507], p83:[1115,561],
+    p84:[857,703], p85:[959,713], p86:[940,750], p87:[939,771], p88:[503,850], p89:[523,932],
+    p90:[558,931], p91:[583,922], p92:[1241,938], p93:[1226,291], p94:[1288,351], p95:[1276,377],
+    p96:[1182,392], p97:[384,547], p98:[394,614], p99:[375,648], p100:[390,676], p101:[1076,653],
+    p102:[827,695], p103:[449,729], p104:[513,735], p105:[541,728], p106:[589,760], p107:[688,785],
+    p108:[895,839], p109:[920,883], p110:[965,904], p111:[396,886], p112:[548,280], p113:[560,272],
+    p114:[588,271], p115:[1028,304], p116:[944,343], p117:[888,303], p118:[795,324], p119:[685,307],
+    p120:[633,288], p121:[1041,408], p122:[1300,474], p123:[1257,453], p124:[441,482], p125:[583,430],
+    p126:[584,388], p127:[1176,606], p128:[1188,594], p129:[855,660], p130:[894,647], p131:[1339,727],
+    p132:[1329,699], p133:[1299,697], p134:[273,738], p135:[227,741], p136:[196,772], p137:[1272,739],
+    p138:[523,818], p139:[570,818], p140:[848,827], p141:[834,814], p142:[1312,875], p143:[1270,910],
+    p144:[1204,713], p145:[299,799], p146:[1141,777], p147:[1115,792], p148:[1101,817], p149:[1258,870],
+    p150:[513,636], p151:[567,638], p152:[593,658], p153:[605,682], p154:[591,708], p155:[323,747],
+    p156:[329,731], p157:[1228,765], p158:[1228,790], p159:[1144,854], p160:[1152,823], p161:[307,472],
+    p162:[262,454], p163:[231,417], p164:[229,390], p165:[238,379], p166:[320,353], p167:[349,327],
+    p168:[1174,936], p169:[1132,941], p170:[1047,923], p171:[1029,901], p172:[1050,215], p173:[1014,205],
+    p174:[938,204], p175:[892,168], p176:[860,163], p177:[834,142], p178:[734,164], p179:[687,133],
+    p180:[506,213],
   };
   var NODE_ZONE = {
-    house_meio_end:'house', house_center:'house', house_paz_end:'house'
+    p0:'meio', p1:'meio', p2:'meio', p3:'paz', p4:'paz', p5:'meio', p6:'paz', p7:'meio', p8:'meio', p9:'paz',
+    p10:'meio', p11:'paz', p12:'paz', p13:'paz', p14:'paz', p15:'paz', p16:'paz', p17:'meio', p18:'paz', p19:'habilidades',
+    p20:'habilidades', p21:'habilidades', p22:'habilidades', p23:'habilidades', p24:'habilidades', p25:'habilidades', p26:'habilidades', p27:'habilidades', p28:'habilidades', p29:'saude',
+    p30:'habilidades', p31:'saude', p32:'saude', p33:'habilidades', p34:'habilidades', p35:'habilidades', p36:'habilidades', p37:'saude', p38:'habilidades', p39:'habilidades',
+    p40:'habilidades', p41:'habilidades', p42:'habilidades', p43:'saude', p44:'habilidades', p45:'saude', p46:'habilidades', p47:'habilidades', p48:'habilidades', p49:'habilidades',
+    p50:'saude', p51:'saude', p52:'habilidades', p53:'habilidades', p54:'saude', p55:'habilidades', p56:'habilidades', p57:'saude', p58:'habilidades', p59:'habilidades',
+    p60:'habilidades', p61:'habilidades', p62:'habilidades', p63:'saude', p64:'saude', p65:'habilidades', p66:'habilidades', p67:'habilidades', p68:'saude', p69:'habilidades',
+    p70:'saude', p71:'habilidades', p72:'habilidades', p73:'habilidades', p74:'meio', p75:'meio', p76:'paz', p77:'paz', p78:'paz', p79:'meio',
+    p80:'paz', p81:'paz', p82:'paz', p83:'paz', p84:'habilidades', p85:'habilidades', p86:'habilidades', p87:'habilidades', p88:'saude', p89:'saude',
+    p90:'saude', p91:'saude', p92:'habilidades', p93:'paz', p94:'paz', p95:'paz', p96:'paz', p97:'meio', p98:'saude', p99:'saude',
+    p100:'saude', p101:'habilidades', p102:'habilidades', p103:'saude', p104:'saude', p105:'saude', p106:'saude', p107:'saude', p108:'habilidades', p109:'habilidades',
+    p110:'habilidades', p111:'saude', p112:'meio', p113:'meio', p114:'meio', p115:'paz', p116:'paz', p117:'paz', p118:'paz', p119:'meio',
+    p120:'meio', p121:'paz', p122:'paz', p123:'paz', p124:'meio', p125:'meio', p126:'meio', p127:'habilidades', p128:'habilidades', p129:'habilidades',
+    p130:'habilidades', p131:'habilidades', p132:'habilidades', p133:'habilidades', p134:'saude', p135:'saude', p136:'saude', p137:'habilidades', p138:'saude', p139:'saude',
+    p140:'habilidades', p141:'habilidades', p142:'habilidades', p143:'habilidades', p144:'habilidades', p145:'saude', p146:'habilidades', p147:'habilidades', p148:'habilidades', p149:'habilidades',
+    p150:'saude', p151:'saude', p152:'saude', p153:'saude', p154:'saude', p155:'saude', p156:'saude', p157:'habilidades', p158:'habilidades', p159:'habilidades',
+    p160:'habilidades', p161:'meio', p162:'meio', p163:'meio', p164:'meio', p165:'meio', p166:'meio', p167:'meio', p168:'habilidades', p169:'habilidades',
+    p170:'habilidades', p171:'habilidades', p172:'paz', p173:'paz', p174:'house', p175:'house', p176:'house', p177:'house', p178:'house', p179:'house',
+    p180:'meio',
   };
-  Object.keys(NODE_DEF).forEach(function (k) {
-    if (!NODE_ZONE[k]) NODE_ZONE[k] = k.split('_')[0];
-  });
   var PATH_NODES = {};
   Object.keys(NODE_DEF).forEach(function (k) {
     var p = NODE_DEF[k], s = S(p[0], p[1]);
@@ -364,46 +388,45 @@
   });
 
   var EDGE_DEF = [
-    // house
-    ['house_meio_end','house_center'], ['house_center','house_paz_end'],
-    // meio ambiente (east loop + west spur)
-    ['meio_house_end','meio_watchtower'], ['meio_watchtower','meio_campfire'],
-    ['meio_campfire','meio_pazbridge'], ['meio_pazbridge','meio_dock'],
-    ['meio_dock','meio_bottom2'], ['meio_bottom2','meio_bottom1'],
-    ['meio_bottom1','meio_southbridge'],
-    ['meio_watchtower','meio_footbridge_e'], ['meio_footbridge_e','meio_footbridge_w'],
-    ['meio_footbridge_w','meio_west1'], ['meio_west1','meio_west2'], ['meio_west2','meio_west3'],
-    // paz e desenvolvimento (plaza hub)
-    ['paz_house_end','paz_plaza_n'], ['paz_plaza_n','paz_statue'],
-    ['paz_statue','paz_meiobridge'], ['paz_statue','paz_plaza_s'],
-    ['paz_statue','paz_shops'], ['paz_shops','paz_ruins'],
-    ['paz_plaza_s','paz_gazebo'], ['paz_gazebo','paz_habilidadesbridge'],
-    // saude e bem-estar (open courtyard mesh)
-    ['saude_meiobridge','saude_hospital'], ['saude_hospital','saude_kayaks'],
-    ['saude_hospital','saude_center'], ['saude_center','saude_soccer'],
-    ['saude_center','saude_south'], ['saude_south','saude_playground'],
-    ['saude_center','saude_pond'], ['saude_pond','saude_habilidadesbridge'],
-    ['saude_pond','saude_playground'],
-    // habilidades para a vida
-    ['habilidades_pazbridge','habilidades_cabin'], ['habilidades_cabin','habilidades_hub'],
-    ['habilidades_hub','habilidades_tower'], ['habilidades_tower','habilidades_saudebridge'],
-    ['habilidades_hub','habilidades_farm'], ['habilidades_farm','habilidades_farm2'],
-    ['habilidades_farm','habilidades_satellite'],
-    // bridges between islands
-    ['house_meio_end','meio_house_end'], ['house_paz_end','paz_house_end'],
-    ['meio_pazbridge','paz_meiobridge'], ['meio_southbridge','saude_meiobridge'],
-    ['paz_habilidadesbridge','habilidades_pazbridge'], ['saude_habilidadesbridge','habilidades_saudebridge']
+    ['p0','p74'], ['p74','p1'], ['p1','p8'], ['p1','p2'], ['p2','p75'], ['p75','p7'], ['p3','p76'], ['p76','p6'],
+    ['p4','p77'], ['p77','p78'], ['p78','p9'], ['p5','p79'], ['p79','p7'], ['p6','p80'], ['p80','p9'], ['p7','p10'],
+    ['p9','p12'], ['p11','p13'], ['p12','p15'], ['p15','p81'], ['p81','p82'], ['p82','p83'], ['p83','p22'], ['p19','p22'],
+    ['p20','p21'], ['p21','p26'], ['p22','p23'], ['p22','p27'], ['p23','p28'], ['p24','p26'], ['p26','p30'], ['p27','p28'],
+    ['p29','p32'], ['p29','p31'], ['p32','p37'], ['p33','p35'], ['p33','p36'], ['p34','p84'], ['p84','p39'], ['p38','p85'],
+    ['p85','p44'], ['p41','p47'], ['p42','p44'], ['p44','p86'], ['p86','p87'], ['p87','p55'], ['p46','p49'], ['p47','p52'],
+    ['p52','p53'], ['p55','p58'], ['p57','p88'], ['p88','p63'], ['p58','p66'], ['p61','p67'], ['p62','p69'], ['p63','p89'],
+    ['p89','p90'], ['p90','p91'], ['p91','p70'], ['p64','p68'], ['p66','p67'], ['p69','p72'], ['p72','p92'], ['p92','p73'],
+    ['p4','p93'], ['p93','p94'], ['p94','p95'], ['p95','p14'], ['p8','p10'], ['p12','p96'], ['p96','p14'], ['p13','p16'],
+    ['p17','p97'], ['p97','p98'], ['p98','p99'], ['p99','p100'], ['p100','p32'], ['p27','p101'], ['p101','p33'], ['p34','p102'],
+    ['p102','p39'], ['p36','p41'], ['p37','p103'], ['p103','p104'], ['p104','p105'], ['p105','p43'], ['p43','p106'], ['p106','p51'],
+    ['p48','p107'], ['p107','p51'], ['p48','p56'], ['p50','p57'], ['p56','p108'], ['p108','p59'], ['p58','p59'], ['p59','p109'],
+    ['p109','p110'], ['p110','p66'], ['p64','p111'], ['p111','p63'], ['p69','p71'], ['p7','p112'], ['p112','p113'], ['p113','p114'],
+    ['p114','p5'], ['p11','p115'], ['p115','p6'], ['p11','p116'], ['p116','p117'], ['p117','p118'], ['p118','p119'], ['p119','p120'],
+    ['p120','p5'], ['p15','p121'], ['p121','p13'], ['p18','p122'], ['p122','p123'], ['p123','p14'], ['p17','p124'], ['p124','p125'],
+    ['p125','p126'], ['p126','p10'], ['p23','p127'], ['p127','p128'], ['p128','p21'], ['p34','p129'], ['p129','p130'], ['p130','p25'],
+    ['p36','p28'], ['p46','p131'], ['p131','p132'], ['p132','p133'], ['p133','p40'], ['p45','p134'], ['p134','p135'], ['p135','p136'],
+    ['p136','p54'], ['p46','p137'], ['p137','p40'], ['p48','p39'], ['p57','p138'], ['p138','p139'], ['p139','p51'], ['p56','p140'],
+    ['p140','p141'], ['p141','p48'], ['p62','p53'], ['p65','p142'], ['p142','p60'], ['p72','p143'], ['p143','p65'], ['p41','p144'],
+    ['p144','p40'], ['p45','p145'], ['p145','p64'], ['p47','p146'], ['p146','p147'], ['p147','p148'], ['p148','p55'], ['p62','p149'],
+    ['p149','p65'], ['p29','p150'], ['p150','p151'], ['p151','p152'], ['p152','p153'], ['p153','p154'], ['p154','p43'], ['p45','p155'],
+    ['p155','p156'], ['p156','p37'], ['p47','p157'], ['p157','p158'], ['p158','p53'], ['p71','p159'], ['p159','p160'], ['p160','p52'],
+    ['p17','p161'], ['p161','p162'], ['p162','p163'], ['p163','p164'], ['p164','p165'], ['p165','p166'], ['p166','p167'], ['p167','p8'],
+    ['p71','p168'], ['p168','p169'], ['p169','p170'], ['p170','p171'], ['p171','p67'], ['p4','p172'], ['p172','p173'], ['p173','p174'],
+    ['p174','p175'], ['p175','p176'], ['p176','p177'], ['p177','p178'], ['p178','p179'], ['p179','p180'], ['p180','p2'],
   ];
-  var PATH_RADIUS = { meio: 60, paz: 70, saude: 110, habilidades: 100, house: 70 };
-  // Inter-island bridges are drawn as narrow wooden planks (~25-35px wide in
-  // the art) — using the wide island radius there let the character "walk"
-  // well into the water on both sides of every bridge. Edges that cross
-  // between two different zones get this tight radius instead.
-  var BRIDGE_RADIUS = 18;
+  // Radii are defined in the same native-image-space units as NODE_DEF, then
+  // scaled by IMG_SCALE along with everything else below — this keeps the
+  // trail width consistent with the art regardless of IMG_SCALE.
+  var PATH_RADIUS = 38;
+  // Inter-island bridges are drawn as narrow wooden planks — using the wide
+  // trail radius there would let the character "walk" into the water on
+  // both sides of every bridge. Edges that cross between two different
+  // zones get this tight radius instead.
+  var BRIDGE_RADIUS = 16;
   var PATH_EDGES = EDGE_DEF.map(function (pair) {
     var a = PATH_NODES[pair[0]], b = PATH_NODES[pair[1]];
-    var r = a.zone !== b.zone ? BRIDGE_RADIUS : Math.max(PATH_RADIUS[a.zone] || 60, PATH_RADIUS[b.zone] || 60);
-    return { a: a, b: b, r: r };
+    var rBase = a.zone !== b.zone ? BRIDGE_RADIUS : PATH_RADIUS;
+    return { a: a, b: b, r: Math.round(rBase * IMG_SCALE) };
   });
 
   function pointToSegDist(px, py, x1, y1, x2, y2) {
@@ -523,29 +546,26 @@
     { id:'saude-sexual', name:'Fita de Conscientização', zone:'saude', emoji:'🎗️', question:'Você se sente à vontade pra buscar informação séria sobre corpo e autocuidado?' }
   ];
 
-  // Place each item near one of its zone's path nodes (not scattered freely
-  // across the island) so it always sits within walking + pickup reach. When
-  // a zone has more items than nodes, items share a node, spread around it at
-  // a small golden-angle-stepped offset so they don't stack exactly in place.
+  // Each item sits at one of the green-X spots the player marked on the map
+  // (hand-picked per item's own eixo/zone island, never on another island),
+  // in native image-space px — scaled the same way as NODE_DEF.
+  var ITEM_POS = {
+    'comunicacoes':[1169,637], 'educacao':[1356,738], 'empreendedorismo':[906,745], 'financas':[1213,779],
+    'gastronomia':[1407,862], 'idiomas':[938,922], 'lideranca':[1275,954], 'tecnologia':[1211,714],
+    'viagens':[1089,946], 'agricultura':[515,110], 'ecoturismo':[214,454], 'educacao-ambiental':[591,439],
+    'esportes-aventura':[304,231], 'habilidades-escoteiras':[607,269], 'natureza':[472,345], 'sustentabilidade':[461,491],
+    'humanitarias':[1150,241], 'ciencias-humanas':[906,294], 'cultura-arte':[1142,350], 'desenvolvimento-comunitario':[1312,353],
+    'direitos-humanos':[1035,432], 'diversidades':[919,435], 'equidade':[1324,485], 'fe-dialogo':[1280,418],
+    'inclusao':[1200,488], 'politicas-publicas':[1233,300], 'alimentar':[351,660], 'esportes':[608,909],
+    'hobbies':[301,917], 'saude':[617,683], 'saude-mental':[161,815], 'saude-sexual':[418,780],
+  };
   (function layoutItems() {
-    var byZone = {};
-    ITEMS.forEach(function (it) { (byZone[it.zone] = byZone[it.zone] || []).push(it); });
     var zoneByKey = {}; ZONES.forEach(function (z) { zoneByKey[z.key] = z; });
-    Object.keys(byZone).forEach(function (zoneKey) {
-      var nodes = Object.keys(PATH_NODES).map(function (k) { return PATH_NODES[k]; })
-        .filter(function (n) { return n.zone === zoneKey; });
-      var list = byZone[zoneKey];
-      var zone = zoneByKey[zoneKey];
-      list.forEach(function (it, i) {
-        var node = nodes[i % nodes.length];
-        var ring = Math.floor(i / nodes.length);
-        var angle = ring * 2.4 + i * 0.7;
-        var radius = 22 + ring * 26;
-        it.x = Math.round(node.x + Math.cos(angle) * radius);
-        it.y = Math.round(node.y + Math.sin(angle) * radius * 0.6);
-        it.eixo = zone.name;
-        it.eixoColor = zone.color;
-      });
+    ITEMS.forEach(function (it) {
+      var p = ITEM_POS[it.id], s = S(p[0], p[1]);
+      it.x = s.x; it.y = s.y;
+      it.eixo = zoneByKey[it.zone].name;
+      it.eixoColor = zoneByKey[it.zone].color;
     });
   })();
 
@@ -600,15 +620,17 @@
   var charPos = { x: SPAWN.x, y: SPAWN.y };
 
   // ---------- NPCs ----------
+  // Home spots are the blue marks the player placed on the map, one per NPC's
+  // own island (native image-space px, scaled like everything else via S()).
   var NPC_DEFS = [
     { id:'bp', name:'Baden-Powell', phrase:'O meio para a felicidade é contribuir para a felicidade dos outros.',
-      home:{ x: HOUSE.x + 40, y: HOUSE.y - 10 }, radius: 30, img:'assets/char-bp.png' },
+      home: S(842, 128), radius: 30, img:'assets/char-bp.png' },
     { id:'chief2', name:'Chefe Escoteiro', phrase:'Eu não sou o Garcia.',
-      home:{ x: 1733, y: 1294 }, radius: 40, img:'assets/char-chief2.png' },
+      home: S(1020, 739), radius: 40, img:'assets/char-chief2.png' },
     { id:'lobinho', name:'Lobinho', phrase:'Melhor Possível!',
-      home:{ x: 774, y: 1381 }, radius: 40, scale: 0.8, img:'assets/char-lobinho.png' },
+      home: S(518, 689), radius: 40, scale: 0.8, img:'assets/char-lobinho.png' },
     { id:'santos', name:'Santos Dumont', phrase:'Catapulta não é avião.',
-      home:{ x: 1793, y: 599 }, radius: 40, img:'assets/char-santos.png' }
+      home: S(1044, 272), radius: 40, img:'assets/char-santos.png' }
   ];
   var npcList = NPC_DEFS.map(function (def) {
     var el = document.createElement('div');
